@@ -1,3 +1,6 @@
 data/
 download_mnist.py
 mnist
+models/
+lib/
+bin/
