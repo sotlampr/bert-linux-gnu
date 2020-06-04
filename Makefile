@@ -1,10 +1,33 @@
 PREFIX := $(shell python -c "import sys; print(sys.exec_prefix)")
-INC := $(shell python -c "import torch.utils.cpp_extension as C; print('-I' + str.join(' -I', C.include_paths()))")
-LIB := -L./lib
+INCLUDE := $(shell python -c "import torch.utils.cpp_extension as C; print('-I' + str.join(' -I', C.include_paths()))")
 TORCHLIBS := $(shell python -c "import torch.utils.cpp_extension as C; print(C.include_paths()[0] + '/../lib')")
-LIBS = -ltorch -lc10 -lc10_cuda -ltorch_cpu -lcuda -lpthread -licuuc -licuio
-CXXFLAGS = -march=native -Og -pipe -std=c++14 -D_GLIBCXX_USE_CXX11_ABI=0
+LDFLAGS := -ltorch -lc10 -lc10_cuda -ltorch_cpu -lcuda -lpthread -licuuc -licuio
+CXXFLAGS := -march=native -Og -pipe -std=c++14 -ggdb3
+CPPFLAGS := -D_GLIBCXX_USE_CXX11_ABI=0
+BINDIR := bin
+SRC_DIR := src
+OBJ_DIR := build
+SOURCES := $(wildcard $(SRC_DIR)/*.cpp)
+OBJECTS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SOURCES))
 
+glue: mkgluedir glue/download_glue_data.py glue/data
+
+mkgluedir:
+	mkdir -p glue
+
+glue/download_glue_data.py: mkgluedir
+	wget https://gist.githubusercontent.com/W4ngatang/60c2bdb54d156a41194446737ce03e2e/raw/17b8dd0d724281ed7c3b2aeeda662b92809aadd5/download_glue_data.py \
+  -O glue/download_glue_data.py
+
+glue/data: mkgluedir glue/download_glue_data.py
+	python glue/download_glue_data.py --data_dir=glue/data --tasks=all
+
+glue/data/CoLA/processed:
+	mkdir -p glue/data/CoLA/processed
+	for f in glue/data/CoLA/*.tsv; do \
+	  cut -f2 -d'	' $$f > glue/data/CoLA/processed/$$(basename $$f .tsv)-labels.txt; \
+	  cut -f4 -d'	' $$f > glue/data/CoLA/processed/$$(basename $$f .tsv)-texts.txt; \
+	done
 
 mnist: mnist.cpp
 	if [ ! -e download_mnist.py ]; then wget "https://raw.githubusercontent.com/pytorch/pytorch/master/tools/download_mnist.py"; fi
@@ -14,14 +37,11 @@ mnist: mnist.cpp
 tokenize: tokenize.cpp
 	$(CXX) tokenize.cpp -o tokenize $(INC) $(LIB) -L$(TORCHLIBS) -Wl,-rpath,$(TORCHLIBS) $(CXXFLAGS) $(LIBS) 
 
-state: lib/bert.o lib/state.o
-	$(CXX) lib/state.o lib/bert.o -o state $(INC) $(LIB) -L$(TORCHLIBS) -Wl,-rpath,$(TORCHLIBS) $(CXXFLAGS) $(LIBS) 
+train: $(OBJECTS)
+	$(CXX) -o $@ $^ $(LDFLAGS) -L$(TORCHLIBS) -Wl,-rpath,$(TORCHLIBS) 
 
-lib/state.o: src/state.cpp
-	$(CXX) -c src/state.cpp -o lib/state.o $(INC) $(LIB) -L$(TORCHLIBS) -Wl,-rpath,$(TORCHLIBS) $(CXXFLAGS) $(LIBS) 
-
-lib/bert.o: src/bert.cpp
-	$(CXX) -c src/bert.cpp -o lib/bert.o $(INC) $(LIB) -L$(TORCHLIBS) -Wl,-rpath,$(TORCHLIBS) $(CXXFLAGS) $(LIBS) 
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+	$(CXX)  -c -o $@ $< $(INCLUDE) $(CPPFLAGS) $(CXXFLAGS)
 
 clean:
-	rm -rf mnist download_mnist.py* data tokenize
+	rm build/* train

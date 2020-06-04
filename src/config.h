@@ -3,6 +3,7 @@
 
 #define PADDING_IDX 0
 #define LAYER_NORM_EPS 1e-12
+#define MAX_SEQUENCE_LENGTH 75
 
 class Config {
   public:

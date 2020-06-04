@@ -6,7 +6,7 @@
 
 #include <torch/torch.h>
 #include "config.h"
-#include "bert.h"
+#include "model.h"
 #include "state.h"
 
 std::vector<std::string> getParameterFiles (std::string path) {
@@ -60,7 +60,7 @@ std::vector<float> getParameterValues(std::string fname, int expectedSize) {
   return out;
 }
 
-void loadState(const std::string path, torch::nn::Module& model) {
+void loadState(const std::string &path, torch::nn::Module& model) {
   torch::NoGradGuard no_grad;
   auto modelParams = model.named_parameters(true /*recurse*/);
   auto modelBuffers = model.named_buffers(true /*recurse*/);
@@ -86,11 +86,4 @@ void loadState(const std::string path, torch::nn::Module& model) {
       std::cout << "\tNot found" << std::endl;
     }
   }
-}
-
-int main() {
-  Config config;
-  BertModel model(config);
-  loadState("models/bert-base-uncased", *model);
-  return 0;
 }

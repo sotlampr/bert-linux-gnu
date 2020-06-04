@@ -7,10 +7,8 @@
 class BertEmbeddingsImpl : public torch::nn::Module {
   public:
     BertEmbeddingsImpl();
-    BertEmbeddingsImpl(Config config);
-    torch::Tensor forward(torch::Tensor inputIds,
-                          torch::Tensor tokenTypeIds,
-                          torch::Tensor positionIds);
+    explicit BertEmbeddingsImpl(Config const &config);
+    torch::Tensor forward(torch::Tensor inputIds);
   private:
     torch::nn::Embedding wordEmbeddings{nullptr},
                          positionEmbeddings{nullptr},
@@ -23,7 +21,7 @@ class BertEmbeddingsImpl : public torch::nn::Module {
 class BertSelfAttentionImpl : public torch::nn::Module {
   public:
     BertSelfAttentionImpl();
-    BertSelfAttentionImpl(Config config);
+    explicit BertSelfAttentionImpl(Config const &config);
     torch::Tensor forward(torch::Tensor hiddenStates,
                           torch::Tensor attentionMask);
   private:
@@ -36,7 +34,7 @@ class BertSelfAttentionImpl : public torch::nn::Module {
 class BertSelfOutputImpl : public torch::nn::Module {
   public:
     BertSelfOutputImpl();
-    BertSelfOutputImpl(Config config);
+    explicit BertSelfOutputImpl(Config const &config);
     torch::Tensor forward(torch::Tensor hiddenStates,
                           torch::Tensor inputTensor);
 	private:
@@ -48,7 +46,7 @@ class BertSelfOutputImpl : public torch::nn::Module {
 class BertAttentionImpl : public torch::nn::Module {
   public:
     BertAttentionImpl();
-    BertAttentionImpl(Config config);
+    explicit BertAttentionImpl(Config const &config);
     torch::Tensor forward(torch::Tensor inputTensor,
                           torch::Tensor attentionMask);
 	private:
@@ -59,7 +57,7 @@ class BertAttentionImpl : public torch::nn::Module {
 class BertIntermediateImpl : public torch::nn::Module {
   public:
     BertIntermediateImpl();
-    BertIntermediateImpl(Config config);
+    explicit BertIntermediateImpl(Config const &config);
     torch::Tensor forward(torch::Tensor hiddenStates);
   private:
     torch::nn::Linear dense{nullptr};
@@ -68,7 +66,7 @@ class BertIntermediateImpl : public torch::nn::Module {
 class BertOutputImpl : public torch::nn::Module {
   public:
     BertOutputImpl();
-    BertOutputImpl(Config config);
+    explicit BertOutputImpl(Config const &config);
     torch::Tensor forward(torch::Tensor hiddenStates, torch::Tensor inputTensor);
   private:
     torch::nn::Linear dense{nullptr};
@@ -79,7 +77,7 @@ class BertOutputImpl : public torch::nn::Module {
 class BertLayerImpl : public torch::nn::Module {
   public:
     BertLayerImpl();
-    BertLayerImpl(Config config);
+    explicit BertLayerImpl(Config const &config);
     torch::Tensor forward(torch::Tensor hiddenStates,
                           torch::Tensor attentionMask);
   private:
@@ -91,7 +89,7 @@ class BertLayerImpl : public torch::nn::Module {
 class BertEncoderImpl : public torch::nn::Module {
   public:
     BertEncoderImpl();
-    BertEncoderImpl(Config config);
+    explicit BertEncoderImpl(Config const &config);
     torch::Tensor forward(torch::Tensor hiddenStates,
                           torch::Tensor attentionMask);
 	private:
@@ -102,7 +100,7 @@ class BertEncoderImpl : public torch::nn::Module {
 class BertPoolerImpl : public torch::nn::Module {
   public:
     BertPoolerImpl();
-    BertPoolerImpl(Config config);
+    explicit BertPoolerImpl(Config const &config);
     torch::Tensor forward(torch::Tensor hiddenStates);
   private:
     torch::nn::Linear dense{nullptr};
@@ -111,14 +109,21 @@ class BertPoolerImpl : public torch::nn::Module {
 class BertModelImpl : public torch::nn::Module {
   public:
     BertModelImpl();
-    BertModelImpl(Config config);
-    torch::Tensor forward(torch::Tensor inputIds,
-                          torch::Tensor tokenTypeIds,
-                          torch::Tensor attentionMask,
-                          torch::Tensor positionIds);
+    explicit BertModelImpl(Config const &config);
+    torch::Tensor forward(torch::Tensor inputIds);
   private:
     BertEmbeddings embeddings{nullptr};
     BertEncoder encoder{nullptr};
     BertPooler pooler{nullptr};
 }; TORCH_MODULE(BertModel);
+
+class BinaryClassifierImpl : public torch::nn::Module {
+  public:
+    BinaryClassifierImpl();
+    explicit BinaryClassifierImpl(Config const &config, int numLabels = 1);
+    torch::Tensor forward(torch::Tensor hidden);
+  private:
+    torch::nn::Linear dense{nullptr};
+    torch::nn::Dropout dropout{nullptr};
+}; TORCH_MODULE(BinaryClassifier);
 #endif
