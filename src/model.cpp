@@ -141,8 +141,7 @@ torch::Tensor BertIntermediateImpl::forward(torch::Tensor hiddenStates) {
   // std::cout << "BertIntermediate" << std::endl;
   // std::cout << "	BertIntermeddiate Input size: " << hiddenStates.sizes() << std::endl;
   hiddenStates = dense->forward(hiddenStates);
-  // TODO: gelu
-  hiddenStates = torch::relu(hiddenStates);
+  hiddenStates = torch::gelu(hiddenStates);
   // std::cout << "	BertIntermeddiate Output size: " << hiddenStates.sizes() << std::endl;
   return hiddenStates;
 }

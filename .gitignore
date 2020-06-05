@@ -5,3 +5,4 @@ models/
 build/
 glue/
 bin/
+**/*.swp

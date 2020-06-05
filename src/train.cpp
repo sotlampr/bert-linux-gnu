@@ -7,6 +7,7 @@ size_t batchSize = 32;
 size_t numWorkers = 4;
 size_t epochs = 10;
 
+
 int main() {
   Config config;
   BertModel model(config);

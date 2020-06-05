@@ -11,7 +11,6 @@
 
 std::vector<std::string> getParameterFiles (std::string path) {
     glob_t globbuf;
-    std::string fname, parameter, sizeString;
     std::vector<std::string> out;
     path += "/*.dat";
     int err = glob(path.c_str(), 0, NULL, &globbuf);

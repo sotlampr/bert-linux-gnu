@@ -15,16 +15,13 @@
 UnicodeConverter::UnicodeConverter(UErrorCode &errorCode)
       : nfd (*Normalizer2::getNFDInstance(errorCode)) {}
 
-UnicodeString UnicodeConverter::toNKD(const UnicodeString &s, UErrorCode &errorCode) {
-  return nfd.normalize(s, errorCode);
-}
-
 UnicodeString UnicodeConverter::toUnicode(const std::string &s) {
   return icu::UnicodeString::fromUTF8(StringPiece(s.c_str()));
 }
 
 UnicodeString UnicodeConverter::process(const std::string &s, UErrorCode &errorCode) {
   UnicodeString us = toUnicode(s);
+  assert (U_SUCCESS(errorCode));
   return nfd.normalize(us, errorCode);
 }
 
@@ -240,7 +237,6 @@ FullTokenizer::readVocabulary(const std::string &vocabFile) {
   long i = 0;
   while (std::getline(file, line)) {
     uLine = unicoder.process(line, uErr);
-    assert (U_SUCCESS(uErr));
     vocab.insert({uLine, i});
     invVocab.insert({i, uLine});
     i++;

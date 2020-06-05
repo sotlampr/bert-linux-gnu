@@ -15,7 +15,6 @@
 class UnicodeConverter {
   public:
     explicit UnicodeConverter(UErrorCode &errorCode);
-    UnicodeString toNKD(const UnicodeString &s, UErrorCode &errorCode);
     UnicodeString toUnicode(const std::string &s);
     UnicodeString process(const std::string &s, UErrorCode &errorCode);
   private:
