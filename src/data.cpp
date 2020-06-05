@@ -1,13 +1,19 @@
-#include <torch/torch.h>
+#include <stdexcept>
 #include <fstream>
 #include <string>
 #include <vector>
 
+#include <torch/torch.h>
+
 #include "config.h"
+#include "tokenize.h"
 #include "data.h"
 
 std::vector<std::string> readTextFile(std::string fname) {
   std::ifstream file(fname);
+  if (!file.is_open()) {
+    throw std::runtime_error(fname + " not found!");
+  }
   std::string line;
   std::vector<std::string> out;
   while (std::getline(file, line)) {
@@ -18,6 +24,9 @@ std::vector<std::string> readTextFile(std::string fname) {
 
 std::vector<long> readClassificationLabels(std::string fname) {
   std::ifstream file(fname);
+  if (!file.is_open()) {
+    throw std::runtime_error(fname + " not found!");
+  }
   std::string line;
   std::vector<long> out;
   while (std::getline(file, line)) {
@@ -69,4 +78,20 @@ torch::data::Example<> TextDataset::get(size_t index) {
 
 torch::optional<size_t> TextDataset::size() const {
 	return texts.size(0);
+}
+
+torch::data::datasets::MapDataset<TextDataset, torch::data::transforms::Stack<torch::data::Example<>>>
+readFileToDataset(std::string const &modelPath, bool doLowercase, const std::string &dataPrefix) {
+  FullTokenizer *tokenizer = new FullTokenizer(modelPath + "/vocab.txt", doLowercase);
+  std::vector<std::string> texts = readTextFile(dataPrefix + "-texts");
+  std::vector<long> labels = readClassificationLabels(dataPrefix + "-labels");
+  std::vector<std::vector<long>> *textsIds = new std::vector<std::vector<long>>;
+  for (auto it = texts.begin(); it != texts.end(); it++) {
+    textsIds->push_back(tokenizer->tokenizeToIds(*it));
+  }
+  long sosId = tokenizer->tokenToId("[CLS]"), eosId = tokenizer->tokenToId("[SEP]");
+	auto dataset = TextDataset(*textsIds, labels, sosId, eosId).map(torch::data::transforms::Stack<>());
+  delete tokenizer;
+  delete textsIds;
+  return dataset;
 }

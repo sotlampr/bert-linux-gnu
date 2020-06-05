@@ -29,4 +29,7 @@ class TextDataset : public torch::data::Dataset<TextDataset> {
     private:
         torch::Tensor texts, labels;
 };
+
+torch::data::datasets::MapDataset<TextDataset, torch::data::transforms::Stack<torch::data::Example<>>>
+  readFileToDataset(std::string const &modelPath, bool doLowercase, std::string const &dataPrefix);
 #endif

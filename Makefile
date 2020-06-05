@@ -10,7 +10,10 @@ OBJ_DIR := build
 SOURCES := $(wildcard $(SRC_DIR)/*.cpp)
 OBJECTS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SOURCES))
 
-glue: mkgluedir glue/download_glue_data.py glue/data
+glue: mkgluedir download_glue_script download_glue
+download_glue_script: glue/download_glue_data.py
+download_glue: glue/data
+process_cola: glue/data/CoLA/processed
 
 mkgluedir:
 	mkdir -p glue
@@ -25,8 +28,8 @@ glue/data: mkgluedir glue/download_glue_data.py
 glue/data/CoLA/processed:
 	mkdir -p glue/data/CoLA/processed
 	for f in glue/data/CoLA/*.tsv; do \
-	  cut -f2 -d'	' $$f > glue/data/CoLA/processed/$$(basename $$f .tsv)-labels.txt; \
-	  cut -f4 -d'	' $$f > glue/data/CoLA/processed/$$(basename $$f .tsv)-texts.txt; \
+	  cut -f2 -d'	' $$f > glue/data/CoLA/processed/$$(basename $$f .tsv)-labels; \
+	  cut -f4 -d'	' $$f > glue/data/CoLA/processed/$$(basename $$f .tsv)-texts; \
 	done
 
 mnist: mnist.cpp

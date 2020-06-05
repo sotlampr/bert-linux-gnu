@@ -4,6 +4,7 @@
 #include <map>
 #include <vector>
 #include <iterator>
+#include <stdexcept>
 
 #include <unicode/ustream.h>
 #include <unicode/schriter.h>
@@ -15,19 +16,25 @@
 UnicodeConverter::UnicodeConverter(UErrorCode &errorCode)
       : nfd (*Normalizer2::getNFDInstance(errorCode)) {}
 
-UnicodeString UnicodeConverter::toUnicode(const std::string &s) {
+UnicodeString UnicodeConverter::toUnicode(const std::string &s) const {
   return icu::UnicodeString::fromUTF8(StringPiece(s.c_str()));
 }
 
-UnicodeString UnicodeConverter::process(const std::string &s, UErrorCode &errorCode) {
+UnicodeString UnicodeConverter::process(const std::string &s, UErrorCode &errorCode) const {
   UnicodeString us = toUnicode(s);
-  assert (U_SUCCESS(errorCode));
-  return nfd.normalize(us, errorCode);
+  if (!U_SUCCESS(errorCode)) {
+    throw std::runtime_error("Unicode conversion failed");
+  }
+  us = nfd.normalize(us, errorCode);
+  if (!U_SUCCESS(errorCode)) {
+    throw std::runtime_error("Unicode normalization failed");
+  }
+  return us;
 }
 
 BasicTokenizer::BasicTokenizer(bool doLowerCase) : doLowerCase (doLowerCase) {};
 
-std::vector<icu::UnicodeString> BasicTokenizer::tokenize(UnicodeString s) const {
+std::vector<icu::UnicodeString> BasicTokenizer::tokenize(icu::UnicodeString &s) const {
   s = clean(s);
   s = tokenizeCJKChars(s);
   s = s.trim();
@@ -50,9 +57,9 @@ std::vector<icu::UnicodeString> BasicTokenizer::tokenize(UnicodeString s) const 
   return whitespaceTokenize(s);
 };
 
-icu::UnicodeString BasicTokenizer::clean(icu::UnicodeString &i) const {
+icu::UnicodeString BasicTokenizer::clean(const icu::UnicodeString &i) const {
   icu::UnicodeString o;
-  const UChar *iBuffer = i.getTerminatedBuffer();
+  const UChar *iBuffer = i.getBuffer();
   UCharCharacterIterator it(iBuffer, u_strlen(iBuffer));
   UChar32 c;
   while (it.hasNext()) {
@@ -68,9 +75,9 @@ icu::UnicodeString BasicTokenizer::clean(icu::UnicodeString &i) const {
   return o;
 };
 
-icu::UnicodeString BasicTokenizer::tokenizeCJKChars(icu::UnicodeString &i) const {
+icu::UnicodeString BasicTokenizer::tokenizeCJKChars(const icu::UnicodeString &i) const {
   icu::UnicodeString o;
-  const UChar *iBuffer = i.getTerminatedBuffer();
+  const UChar *iBuffer = i.getBuffer();
   UCharCharacterIterator it(iBuffer, u_strlen(iBuffer));
   UChar32 c;
   while (it.hasNext()) {
@@ -93,10 +100,10 @@ icu::UnicodeString BasicTokenizer::tokenizeCJKChars(icu::UnicodeString &i) const
 return o;
 }
 
-std::vector<icu::UnicodeString> BasicTokenizer::whitespaceTokenize(icu::UnicodeString s) const {
+std::vector<icu::UnicodeString> BasicTokenizer::whitespaceTokenize(const icu::UnicodeString &s) const {
   icu::UnicodeString t;
   std::vector<icu::UnicodeString> o;
-  const UChar *sBuffer = s.getTerminatedBuffer();
+  const UChar *sBuffer = s.getBuffer();
   UCharCharacterIterator it(sBuffer, u_strlen(sBuffer));
   UChar32 c;
   while (it.hasNext()) {
@@ -114,9 +121,9 @@ std::vector<icu::UnicodeString> BasicTokenizer::whitespaceTokenize(icu::UnicodeS
   return o;
 }
 
-icu::UnicodeString BasicTokenizer::stripAccents(icu::UnicodeString &i) const {
+icu::UnicodeString BasicTokenizer::stripAccents(const icu::UnicodeString &i) const {
   icu::UnicodeString o;
-  const UChar *iBuffer = i.getTerminatedBuffer();
+  const UChar *iBuffer = i.getBuffer();
   UCharCharacterIterator it(iBuffer, u_strlen(iBuffer));
   UChar32 c;
   while (it.hasNext()) {
@@ -130,10 +137,10 @@ icu::UnicodeString BasicTokenizer::stripAccents(icu::UnicodeString &i) const {
   return o;
 }
 
-std::vector<icu::UnicodeString> BasicTokenizer::splitPunctuation(icu::UnicodeString s) const {
+std::vector<icu::UnicodeString> BasicTokenizer::splitPunctuation(const icu::UnicodeString s) const {
   icu::UnicodeString t;
   std::vector<icu::UnicodeString> o;
-  const UChar *sBuffer = s.getTerminatedBuffer();
+  const UChar *sBuffer = s.getBuffer();
   UCharCharacterIterator it(sBuffer, u_strlen(sBuffer));
   UChar32 c;
   while (it.hasNext()) {
@@ -160,11 +167,11 @@ std::vector<icu::UnicodeString> BasicTokenizer::splitPunctuation(icu::UnicodeStr
 
 
 WordPieceTokenizer::WordPieceTokenizer(const std::map<icu::UnicodeString,long> &vocab,
-                                       icu::UnicodeString unkToken,
+                                       const icu::UnicodeString &unkToken,
                                        int maxInputCharsPerWord)
   : vocab (vocab), unkToken (unkToken), maxInputCharsPerWord(maxInputCharsPerWord) { }
 
-std::vector<icu::UnicodeString> WordPieceTokenizer::tokenize(icu::UnicodeString s) const {
+std::vector<icu::UnicodeString> WordPieceTokenizer::tokenize(const icu::UnicodeString &s) const {
   std::vector<icu::UnicodeString> out;
   if (s.length() > maxInputCharsPerWord) {
     out.push_back(unkToken);
@@ -172,7 +179,7 @@ std::vector<icu::UnicodeString> WordPieceTokenizer::tokenize(icu::UnicodeString 
   }
 
   icu::UnicodeString subString, curSubString;
-  const UChar *sBuffer = s.getTerminatedBuffer();
+  const UChar *sBuffer = s.getBuffer();
   UCharCharacterIterator it(sBuffer, u_strlen(sBuffer));
   int32_t start = 0;
   bool isBad = false;
@@ -205,7 +212,7 @@ std::vector<icu::UnicodeString> WordPieceTokenizer::tokenize(icu::UnicodeString 
   return out;
 }
 
-std::vector<long> WordPieceTokenizer::tokensToIds(std::vector<icu::UnicodeString> v) const {
+std::vector<long> WordPieceTokenizer::tokensToIds(const std::vector<icu::UnicodeString> &v) const {
   std::vector<long> ids;
   for (auto it = v.begin(); it != v.end(); it++) {
     ids.push_back(vocab.at(*it));
@@ -213,7 +220,7 @@ std::vector<long> WordPieceTokenizer::tokensToIds(std::vector<icu::UnicodeString
   return ids;
 };
 
-long WordPieceTokenizer::tokenToId(const icu::UnicodeString &s) {
+long WordPieceTokenizer::tokenToId(const icu::UnicodeString &s) const {
   return vocab.at(s);
 };
 
@@ -232,6 +239,9 @@ FullTokenizer::~FullTokenizer() {
 std::pair<std::map<icu::UnicodeString,long>,std::map<long,icu::UnicodeString>>
 FullTokenizer::readVocabulary(const std::string &vocabFile) {
   std::ifstream file(vocabFile);
+  if (!file.is_open()) {
+    throw std::runtime_error(vocabFile + " not found!");
+  }
   std::string line;
   icu::UnicodeString uLine;
   long i = 0;
@@ -260,6 +270,6 @@ std::vector<long> FullTokenizer::tokenizeToIds (const std::string &s) {
   return wordPieceTokenizer.tokensToIds(tokenize(s));
 }
 
-long FullTokenizer::tokenToId(const icu::UnicodeString &s) {
+long FullTokenizer::tokenToId(const icu::UnicodeString &s) const {
   return wordPieceTokenizer.tokenToId(s);
 }
