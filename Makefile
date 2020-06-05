@@ -2,13 +2,40 @@ PREFIX := $(shell python -c "import sys; print(sys.exec_prefix)")
 INCLUDE := $(shell python -c "import torch.utils.cpp_extension as C; print('-I' + str.join(' -I', C.include_paths()))")
 TORCHLIBS := $(shell python -c "import torch.utils.cpp_extension as C; print(C.include_paths()[0] + '/../lib')")
 LDFLAGS := -ltorch -lc10 -lc10_cuda -ltorch_cpu -lcuda -lpthread -licuuc -licuio
-CXXFLAGS := -march=native -Og -pipe -std=c++14 -ggdb3
-CPPFLAGS := -D_GLIBCXX_USE_CXX11_ABI=0
-BINDIR := bin
-SRC_DIR := src
-OBJ_DIR := build
-SOURCES := $(wildcard $(SRC_DIR)/*.cpp)
-OBJECTS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SOURCES))
+CXXFLAGS := -march=native -O2 -pipe -std=c++14 # -ggdb3
+CPPFLAGS := -D_GLIBCXX_USE_CXX11_ABI=0 # -DDEBUG
+
+MODULES := data model state tokenize train
+SRC_DIR := $(addprefix src/,$(MODULES))
+BUILD_DIR := $(addprefix build/,$(MODULES))
+SOURCES := $(foreach sdir,$(SRC_DIR),$(wildcard $(sdir)/*.cpp))
+OBJECTS := $(patsubst src/%.cpp,build/%.o,$(SOURCES))
+INCLUDE += -I./src
+
+vpath %.cpp $(SRC_DIR)
+
+define make-goal
+$1/%.o: %.cpp
+	$(CXX)  -c $$< -o $$@ $(INCLUDE) $(CPPFLAGS) $(CXXFLAGS)
+endef
+
+.PHONY: all checkdirs clean
+
+all: checkdirs train
+
+train: $(OBJECTS)
+	$(CXX) -o $@ $^ $(LDFLAGS) -L$(TORCHLIBS) -Wl,-rpath,$(TORCHLIBS) 
+	
+checkdirs: $(BUILD_DIR)
+
+$(BUILD_DIR):
+	@mkdir -p $@
+
+clean:
+	@rm -rf $(BUILD_DIR)
+
+$(foreach bdir,$(BUILD_DIR),$(eval $(call make-goal,$(bdir))))
+
 
 glue: mkgluedir download_glue_script download_glue
 download_glue_script: glue/download_glue_data.py
@@ -31,20 +58,3 @@ glue/data/CoLA/processed:
 	  cut -f2 -d'	' $$f > glue/data/CoLA/processed/$$(basename $$f .tsv)-labels; \
 	  cut -f4 -d'	' $$f > glue/data/CoLA/processed/$$(basename $$f .tsv)-texts; \
 	done
-
-mnist: mnist.cpp
-	if [ ! -e download_mnist.py ]; then wget "https://raw.githubusercontent.com/pytorch/pytorch/master/tools/download_mnist.py"; fi
-	python download_mnist.py -ddata
-	$(CXX) mnist.cpp -o mnist $(INC) $(LIB) -L$(TORCHLIBS) -Wl,-rpath,$(TORCHLIBS) $(CXXFLAGS) $(LIBS) 
-
-tokenize: tokenize.cpp
-	$(CXX) tokenize.cpp -o tokenize $(INC) $(LIB) -L$(TORCHLIBS) -Wl,-rpath,$(TORCHLIBS) $(CXXFLAGS) $(LIBS) 
-
-train: $(OBJECTS)
-	$(CXX) -o $@ $^ $(LDFLAGS) -L$(TORCHLIBS) -Wl,-rpath,$(TORCHLIBS) 
-
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
-	$(CXX)  -c -o $@ $< $(INCLUDE) $(CPPFLAGS) $(CXXFLAGS)
-
-clean:
-	rm build/* train

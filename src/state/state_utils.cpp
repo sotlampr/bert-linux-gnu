@@ -3,11 +3,11 @@
 #include <vector>
 #include <fstream>
 #include <cassert>
-
 #include <torch/torch.h>
-#include "config.h"
+#include <stdexcept>
+
 #include "model.h"
-#include "state.h"
+#include "state_utils.h"
 
 std::vector<std::string> getParameterFiles (std::string path) {
     glob_t globbuf;
@@ -64,25 +64,37 @@ void loadState(const std::string &path, torch::nn::Module& model) {
   auto modelParams = model.named_parameters(true /*recurse*/);
   auto modelBuffers = model.named_buffers(true /*recurse*/);
 
+  #ifdef DEBUG
+  std::cout << "Loading state from `" << path << "`" << std::endl;
+  #endif
+
   for (auto const& fname : getParameterFiles(path)) {
     std::string paramName = getParameterName(fname);
     std::vector<int64_t> paramSize = getParameterSize(fname);
     int numValues = 1;
-    for (uint32_t i = 0; i < paramSize.size(); i++) {
+    for (size_t i = 0; i < paramSize.size(); i++) {
       numValues *= paramSize[i];
     }
     std::vector<float> values = getParameterValues(fname, numValues);
-    std::cout <<  paramName << "...";
+
+    #ifdef DEBUG
+    std::cout << "\t->" <<  paramName << "...";
+    #endif
 
     torch::Tensor tensorValues = torch::from_blob(values.data(), paramSize);
 
     auto* t = modelParams.find(paramName);
 
     if(t != nullptr) {
+      #ifdef DEBUG
       std::cout << "\tOK" << std::endl;
+      #endif
       t->copy_(tensorValues);
     } else {
+      #ifdef DEBUG
       std::cout << "\tNot found" << std::endl;
+      #endif
+      throw std::runtime_error("Parameter " + paramName + " not in model");
     }
   }
 }
