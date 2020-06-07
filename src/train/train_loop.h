@@ -4,31 +4,32 @@
 #include <vector>
 #include <torch/torch.h>
 #include "model.h"
+#include "train/task.h"
 
-inline void innerLoop(TextDataLoaderType &loader,
-                      BertModel &model,
+inline void innerLoop(BertModel &model,
                       BinaryClassifier &classifier,
-                      torch::nn::BCEWithLogitsLoss &criterion,
-                      std::vector<float> &losses,
-                      torch::Tensor &labels,
-                      torch::Tensor &predictions,
+                      TextDataLoaderType &loader,
+                      std::vector<Task> &tasks,
+                      std::vector<std::vector<float>> &losses,
+                      std::vector<torch::Tensor> &labels,
+                      std::vector<torch::Tensor> &predictions,
                       std::function<void (torch::Tensor)> callback);
 
 void trainLoop(BertModel &model,
                BinaryClassifier &classifier,
                TextDataLoaderType &loader,
-               torch::nn::BCEWithLogitsLoss &criterion,
-               torch::optim::Optimizer &optimizer,
-               std::vector<float> &losses,
-               torch::Tensor &labels,
-               torch::Tensor &predictions);
+               std::vector<Task> &tasks,
+               std::vector<std::vector<float>> &losses,
+               std::vector<torch::Tensor> &labels,
+               std::vector<torch::Tensor> &predictions,
+               torch::optim::Optimizer &optimizer);
 
 void trainLoop(BertModel &model,
                BinaryClassifier &classifier,
                TextDataLoaderType &loader,
-               torch::nn::BCEWithLogitsLoss &criterion,
-               std::vector<float> &losses,
-               torch::Tensor &labels,
-               torch::Tensor &predictions);
+               std::vector<Task> &tasks,
+               std::vector<std::vector<float>> &losses,
+               std::vector<torch::Tensor> &labels,
+               std::vector<torch::Tensor> &predictions);
 
 #endif
