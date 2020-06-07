@@ -1,3 +1,4 @@
+#include <cmath>
 #include <torch/torch.h>
 
 #include "config.h"

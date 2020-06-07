@@ -5,71 +5,70 @@
 #include "data.h"
 #include "model.h"
 
-inline torch::Tensor doStep(torch::data::Example<> &batch,
-                            BertModel &model,
-                            BinaryClassifier &classifier,
-                            torch::nn::BCEWithLogitsLoss &criterion,
-                            std::vector<torch::Tensor> &predictions,
-                            std::vector<float> &losses) {
+inline void innerLoop(TextDataLoaderType &loader,
+                      BertModel &model,
+                      BinaryClassifier &classifier,
+                      torch::nn::BCEWithLogitsLoss &criterion,
+                      std::vector<float> &losses,
+                      torch::Tensor labels,
+                      torch::Tensor predictions,
+                      std::function<void (torch::Tensor)> callback) {
 
+  int batchSize = loader->options().batch_size;
+  int startIdx = 0;
+  for (auto& batch : *loader) {
       auto data = batch.data.cuda();
-      auto labels = batch.target.cuda().to(torch::kFloat);
+      auto batchLabels = batch.target.cuda().to(torch::kFloat);
 
       torch::Tensor output = model->forward(data);
       torch::Tensor logits = classifier->forward(output).squeeze();
-      predictions.push_back(logits);
+      torch::Tensor loss = criterion->forward(logits, batchLabels);
 
-      torch::Tensor loss = criterion->forward(logits, labels);
       losses.push_back(loss.item<float>());
-      return loss;
+      labels.index_put_({torch::indexing::Slice(startIdx, startIdx+batchLabels.sizes()[0])}, batchLabels);
+      predictions.index_put_({torch::indexing::Slice(startIdx, startIdx+logits.sizes()[0])}, logits);
+      startIdx += batchSize;
+
+      #ifdef DEBUG
+      std::cout << "step=" << (int)(startIdx/batchSize) << ", loss=" << losses.back() << std::endl;
+      #endif
+
+      callback(loss);
+  }
 }
 
-
-std::tuple<std::vector<float>, std::vector<torch::Tensor>>
-trainLoop(BertModel &model,
+// Training
+void trainLoop(BertModel &model,
           BinaryClassifier &classifier,
           TextDataLoaderType &loader,
           torch::nn::BCEWithLogitsLoss &criterion,
-          torch::optim::Optimizer &optimizer) {
+          torch::optim::Optimizer &optimizer,
+          std::vector<float> &losses,
+          torch::Tensor &labels,
+          torch::Tensor &predictions) {
 
-  std::vector<float> losses;
-  std::vector<torch::Tensor> predictions;
-
-  model->train(true);
-
-  int step = 1;
-  for (auto batch : *loader) {
-      torch::Tensor loss = doStep(batch, model, classifier, criterion, predictions, losses);
-      #ifdef DEBUG
-      std::cout << "step=" << step << ", loss=" << losses.back() << std::endl;
-      #endif
+  model->train();
+  classifier->train();
+  auto callback = [&] (torch::Tensor loss) {
       model->zero_grad();
       loss.backward();
       optimizer.step();
-      step++;
-  }
-  return {losses, predictions};
+  };
+  innerLoop(loader, model, classifier, criterion, losses, labels, predictions, callback);
 }
 
-std::tuple<std::vector<float>, std::vector<torch::Tensor>>
-trainLoop(BertModel &model,
-          BinaryClassifier &classifier,
-          TextDataLoaderType &loader,
-          torch::nn::BCEWithLogitsLoss &criterion) {
+// Validation
+void trainLoop(BertModel &model,
+               BinaryClassifier &classifier,
+               TextDataLoaderType &loader,
+               torch::nn::BCEWithLogitsLoss &criterion,
+               std::vector<float> &losses,
+               torch::Tensor &labels,
+               torch::Tensor &predictions) {
 
   torch::NoGradGuard no_grad;
-  std::vector<float> losses;
-  std::vector<torch::Tensor> predictions;
-
-  model->train(false);
-
-  int step = 1;
-  for (auto& batch : *loader) {
-      doStep(batch, model, classifier, criterion, predictions, losses);
-      #ifdef DEBUG
-      std::cout << "step=" << step << ", loss=" << losses.back() << std::endl;
-      #endif
-      step++;
-  }
-  return {losses, predictions};
+  model->eval();
+  classifier->eval();
+  auto callback = [] (torch::Tensor loss) {};
+  innerLoop(loader, model, classifier, criterion, losses, labels, predictions, callback);
 }

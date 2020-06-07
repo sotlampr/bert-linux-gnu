@@ -7,6 +7,7 @@
 #include "data.h"
 #include "model.h"
 #include "state.h"
+#include "metrics.h"
 #include "train_utils.h"
 #include "train_loop.h"
 
@@ -18,15 +19,18 @@ void runTraining(const Config &config,
   loadState(modelDir, *model);
 
   TextDatasetType trainDataset = readFileToDataset(modelDir, true, dataDir + "/train");
-  TextDatasetType devDataset = readFileToDataset(modelDir, true, dataDir + "/dev");
+  TextDatasetType valDataset = readFileToDataset(modelDir, true, dataDir + "/dev");
+
+  auto trainLabelsSize  = trainDataset.dataset().getLabels().sizes();
+  auto valLabelsSize  = valDataset.dataset().getLabels().sizes();
 
 	TextDataLoaderType trainLoader = torch::data::make_data_loader(
     trainDataset,
     torch::data::DataLoaderOptions().batch_size(batchSize).workers(numWorkers));
 
-	TextDataLoaderType devLoader = torch::data::make_data_loader(
-    devDataset,
-    torch::data::DataLoaderOptions().batch_size(batchSize).workers(numWorkers));
+	TextDataLoaderType valLoader = torch::data::make_data_loader(
+      valDataset,
+      torch::data::DataLoaderOptions().batch_size(batchSize).workers(numWorkers));
 
 	model->to(torch::kCUDA);
 	classifier->to(torch::kCUDA);
@@ -38,29 +42,35 @@ void runTraining(const Config &config,
   torch::optim::Adam optimizer(parameters, torch::optim::AdamOptions(1e-5));
   torch::nn::BCEWithLogitsLoss criterion;
 
-  std::vector<float> losses;
-  std::vector<torch::Tensor> predictions;
-
   for (int epoch=1; epoch <= numEpochs; epoch++) {
-    auto stats = trainLoop(model, classifier, trainLoader, criterion, optimizer);
-    losses = std::get<0>(stats);
-    predictions = std::get<1>(stats);
+    std::vector<float> trainLosses, valLosses;
+    torch::Tensor trainLabels = torch::zeros(trainLabelsSize);
+    torch::Tensor trainPredictions = torch::zeros(trainLabelsSize);
+    torch::Tensor valLabels = torch::zeros(valLabelsSize);
+    torch::Tensor valPredictions = torch::zeros(valLabelsSize);
+
+    trainLoop(model, classifier, trainLoader, criterion, optimizer, trainLosses, trainLabels, trainPredictions);
 
     float sum = 0.0f;
-    for (float x : losses ) sum += x;
-    float avg = sum / losses.size();
+    for (float x : trainLosses ) sum += x;
+    float avg = sum / trainLosses.size();
+    trainPredictions = (trainPredictions >= 0.0f).to(torch::kInt64);
+    float mcc = matthewsCorrelationCoefficient(trainLabels, trainPredictions);
 
     std::cout << "epoch=" << epoch << ", ";
-    std::cout << "avg_loss=" << std::fixed << std::setprecision(3) << avg << std::endl;
+    std::cout << "avg_loss=" << std::fixed << std::setprecision(3) << avg;
+    std::cout << " mcc=" << std::fixed << std::setprecision(3) << mcc << std::endl;
 
-    stats = trainLoop(model, classifier, devLoader, criterion);
-    losses = std::get<0>(stats);
-    predictions = std::get<1>(stats);
+    trainLoop(model, classifier, valLoader, criterion, valLosses, valLabels, valPredictions);
 
     sum = 0.0f;
-    for (float x : losses ) sum += x;
-    avg = sum / losses.size();
+    for (float x : valLosses ) sum += x;
+    avg = sum / valLosses.size();
 
-    std::cout << "\tval_loss=" << std::fixed << std::setprecision(3) << avg << std::endl;
+    valPredictions = (valPredictions >= 0.0f).to(torch::kInt64);
+    mcc = matthewsCorrelationCoefficient(valLabels, valPredictions);
+
+    std::cout << "\tval_loss=" << std::fixed << std::setprecision(3) << avg;
+    std::cout << " val_mcc=" << std::fixed << std::setprecision(3) << mcc << std::endl;
 	}
 }

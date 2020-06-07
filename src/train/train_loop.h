@@ -5,23 +5,30 @@
 #include <torch/torch.h>
 #include "model.h"
 
-torch::Tensor doStep(torch::data::Example<> &batch,
-                     BertModel &model,
-                     BinaryClassifier &classifier,
-                     torch::nn::BCEWithLogitsLoss &criterion,
-                     std::vector<float> &losses);
+inline void innerLoop(TextDataLoaderType &loader,
+                      BertModel &model,
+                      BinaryClassifier &classifier,
+                      torch::nn::BCEWithLogitsLoss &criterion,
+                      std::vector<float> &losses,
+                      torch::Tensor &labels,
+                      torch::Tensor &predictions,
+                      std::function<void (torch::Tensor)> callback);
 
-std::tuple<std::vector<float>, std::vector<torch::Tensor>>
-  trainLoop(BertModel &model,
-            BinaryClassifier &classifier,
-            TextDataLoaderType &loader,
-            torch::nn::BCEWithLogitsLoss &criterion,
-            torch::optim::Optimizer &optimizer);
+void trainLoop(BertModel &model,
+               BinaryClassifier &classifier,
+               TextDataLoaderType &loader,
+               torch::nn::BCEWithLogitsLoss &criterion,
+               torch::optim::Optimizer &optimizer,
+               std::vector<float> &losses,
+               torch::Tensor &labels,
+               torch::Tensor &predictions);
 
-std::tuple<std::vector<float>, std::vector<torch::Tensor>>
-  trainLoop(BertModel &model,
-            BinaryClassifier &classifier,
-            TextDataLoaderType &loader,
-            torch::nn::BCEWithLogitsLoss &criterion);
+void trainLoop(BertModel &model,
+               BinaryClassifier &classifier,
+               TextDataLoaderType &loader,
+               torch::nn::BCEWithLogitsLoss &criterion,
+               std::vector<float> &losses,
+               torch::Tensor &labels,
+               torch::Tensor &predictions);
 
 #endif

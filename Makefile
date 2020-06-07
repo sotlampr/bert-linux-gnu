@@ -2,10 +2,10 @@ PREFIX := $(shell python -c "import sys; print(sys.exec_prefix)")
 INCLUDE := $(shell python -c "import torch.utils.cpp_extension as C; print('-I' + str.join(' -I', C.include_paths()))")
 TORCHLIBS := $(shell python -c "import torch.utils.cpp_extension as C; print(C.include_paths()[0] + '/../lib')")
 LDFLAGS := -ltorch -lc10 -lc10_cuda -ltorch_cpu -lcuda -lpthread -licuuc -licuio
-CXXFLAGS := -march=native -O2 -pipe -std=c++14 # -ggdb3
+CXXFLAGS := -march=native -O0 -pipe -std=c++14 -ggdb3 -g
 CPPFLAGS := -D_GLIBCXX_USE_CXX11_ABI=0 # -DDEBUG
 
-MODULES := data model state tokenize train
+MODULES := data metrics model state tokenize train
 SRC_DIR := $(addprefix src/,$(MODULES))
 BUILD_DIR := $(addprefix build/,$(MODULES))
 SOURCES := $(foreach sdir,$(SRC_DIR),$(wildcard $(sdir)/*.cpp))
