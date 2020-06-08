@@ -55,6 +55,6 @@ glue/data: mkgluedir glue/download_glue_data.py
 glue/data/CoLA/processed:
 	mkdir -p glue/data/CoLA/processed
 	for f in glue/data/CoLA/*.tsv; do \
-	  cut -f2 -d'	' $$f > glue/data/CoLA/processed/$$(basename $$f .tsv)-labels; \
-	  cut -f4 -d'	' $$f > glue/data/CoLA/processed/$$(basename $$f .tsv)-texts; \
+	  cut -f2 -d'	' $$f | sed 's/\.0//g' > glue/data/CoLA/processed/$$(basename $$f .tsv)-labels; \
+	  cut -f4 -d'	' $$f | sed 's/\.0//g' > glue/data/CoLA/processed/$$(basename $$f .tsv)-texts; \
 	done
