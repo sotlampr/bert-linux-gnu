@@ -1,6 +1,7 @@
 #include <getopt.h>
 #include <iostream>
 #include "config.h"
+#include "data.h"
 #include "task.h"
 #include "train_utils.h"
 
@@ -86,30 +87,33 @@ int main(int argc, char *argv[]) {
         break;
       case 'D':
         dataDir = optarg;
+        lastTask.baseDir = dataDir;
         break;
       case 'h':
         printHelp(argv[0]);
         break;
       case 't':
-        if (!lastTask.getName().empty()) {
+        CHECK_STR_ARG("--data-dir", dataDir);
+        if (!lastTask.name.empty()) {
           tasks.push_back(lastTask);
           lastTask = Task();
+          lastTask.baseDir = dataDir;
         }
-        lastTask.init(optarg);
+        lastTask.name = optarg;
         break;
       case 'm':
-        if (lastTask.getName().empty()) {
+        if (lastTask.name.empty()) {
           printf("Task not specified, cannot add metric `%s`\n", optarg);
           return 1;
         }
         lastTask.addMetric(optarg);
         break;
       case 'l':
-        if (lastTask.getName().empty()) {
+        if (lastTask.name.empty()) {
           printf("Task not specified, cannot set loss multiplier `%s`", optarg);
           return 1;
         }
-        lastTask.setLossMultiplier(std::stof(optarg));
+        lastTask.lossMultiplier = std::stof(optarg);
         break;
       case '?':
         printf("Invalid argument -%c\n", optopt);
@@ -123,25 +127,37 @@ int main(int argc, char *argv[]) {
 		 }
   }
 
-  if (!lastTask.getName().empty()) {
+  if (!lastTask.name.empty()) {
     tasks.push_back(lastTask);
   }
 
   if (tasks.size() == 1) {
-    tasks[0].setLossMultiplier(1.0f);
+    tasks[0].lossMultiplier = 1.0f;
   }
+
+  if (tasks.size() == 0) {
+    printf("Specify at least a task `-t`\n");
+    return 1;
+  }
+
 
   CHECK_INT_ARG("--batch-size", batchSize);
   CHECK_INT_ARG("--num-epochs", numEpochs);
   CHECK_STR_ARG("--model-dir", modelDir);
   CHECK_STR_ARG("--data-dir", dataDir);
 
-  for (const auto& task : tasks) {
-    std::cout << "Task: " << task.getName() << std::endl;
-    std::cout << "\tLoss multiplier: " << task.getLossMultiplier() << std::endl;
-    for (const auto& metric : task.getMetrics()) {
-      std::cout << "\tMetric: " << metric << std::endl;
+  for (auto& task : tasks) {
+    detectTaskType(task);
+    std::cout << "Task: " << task.name << std::endl;
+    std::cout << "\tLoss multiplier: " << task.lossMultiplier << std::endl;
+    std::cout << "\tBaseDir: " << task.baseDir << std::endl;
+    for (const auto& metric : task.metrics) {
+      std::cout << "\tMetric: " << metric.first << std::endl;
     }
+    std::cout << "\tRegression? " << ((Regression & task.taskType) == Regression) << std::endl;
+    std::cout << "\tToken-level? " << ((TokenLevel & task.taskType) == TokenLevel) << std::endl;
+    std::cout << "\tBinary? " << ((Binary & task.taskType) == Binary) << std::endl;
+    std::cout << "\tNeedsTranslation? " << ((NeedsTranslation & task.taskType) == NeedsTranslation) << std::endl;
   }
 
   Config config;

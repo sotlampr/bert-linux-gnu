@@ -16,8 +16,14 @@
 void initCriteria(std::vector<Task>& tasks) {
   std::for_each(tasks.begin(), tasks.end(),
     [](Task &t) -> Task {
-        auto criterion = torch::nn::BCEWithLogitsLoss();
-        t.setCriterion<torch::nn::BCEWithLogitsLoss>(std::move(criterion));
+        if ((Regression & t.taskType) == Regression) {
+          throw std::runtime_error("Regression not implemented");
+        } else if ((Binary & t.taskType) == Binary) {
+          auto criterion = torch::nn::BCEWithLogitsLoss();
+          t.criterion<torch::nn::BCEWithLogitsLoss> = std::move(criterion);
+        } else {
+          throw std::runtime_error("Regression not implemented");
+        }
         return t;
    });
 }
@@ -29,6 +35,7 @@ void runTraining(const Config &config,
                  size_t batchSize,
                  size_t numWorkers,
                  size_t numEpochs) {
+
 	// Initialize models
   BertModel model(config);
   BinaryClassifier classifier(config);
@@ -37,8 +44,8 @@ void runTraining(const Config &config,
 	classifier->to(torch::kCUDA);
 
 	//Initialize dataset
-  TextDatasetType trainDataset = readDataset(modelDir, true, dataDir + "/train", tasks);
-  TextDatasetType valDataset = readDataset(modelDir, true, dataDir + "/dev", tasks);
+  TextDatasetType trainDataset = getDataset(modelDir, tasks, "train");
+  TextDatasetType valDataset = getDataset(modelDir, tasks, "val");
 
 	// Get label tensor sizes
   std::vector<torch::IntArrayRef> trainLabelSizes = trainDataset.dataset().getLabelSizes();
@@ -48,11 +55,11 @@ void runTraining(const Config &config,
 	TextDataLoaderType trainLoader = torch::data::make_data_loader(
     trainDataset,
     torch::data::DataLoaderOptions().batch_size(batchSize).workers(numWorkers));
-
 	TextDataLoaderType valLoader = torch::data::make_data_loader(
       valDataset,
       torch::data::DataLoaderOptions().batch_size(batchSize).workers(numWorkers));
 
+  // Initialize criteria
   initCriteria(tasks);
 
 	// Initialize optimizer
@@ -85,27 +92,35 @@ void runTraining(const Config &config,
     std::cout << "\tOK" << std::endl;
   
     for (size_t i = 0; i < tasks.size(); i++){
-      std::cout << "Task: " << tasks[i].getName() << std::endl;
+      std::cout << "Task: " << tasks[i].name << std::endl;
       float sum = 0.0f;
       for (float x : trainLosses[i] ) sum += x;
       float avg = sum / trainLosses[i].size();
       std::cout << "\tavg. loss=" << std::fixed << std::setprecision(3) << avg;
       trainPredictions[i] = (trainPredictions[i] >= 0.0f).to(torch::kInt64);
-      float mcc = matthewsCorrelationCoefficient(trainLabels[i], trainPredictions[i]);
-      std::cout << " mcc=" << std::fixed << std::setprecision(3) << mcc << std::endl;
+      for (const auto& metric : tasks[i].metrics) {
+        float val = metric.second(trainLabels[i], trainPredictions[i]);
+        std::cout << " " << metric.first << "=" << std::fixed << std::setprecision(3) << val;
+      }
+      std::cout << std::endl;
     }
 
+    std::cout << "Validation..." << std::flush;
+    trainLoop(model, classifier, valLoader, tasks, valLosses, valLabels, valPredictions);
+    std::cout << "\tOK" << std::endl;
 
-    // trainLoop(model, classifier, valLoader, criterion, valLosses, valLabels, valPredictions);
-
-    // sum = 0.0f;
-    // for (float x : valLosses ) sum += x;
-    // avg = sum / valLosses.size();
-
-    // valPredictions = (valPredictions >= 0.0f).to(torch::kInt64);
-    // mcc = matthewsCorrelationCoefficient(valLabels, valPredictions);
-
-    // std::cout << "\tval_loss=" << std::fixed << std::setprecision(3) << avg;
-    // std::cout << " val_mcc=" << std::fixed << std::setprecision(3) << mcc << std::endl;
+    for (size_t i = 0; i < tasks.size(); i++){
+       std::cout << "Task: " << tasks[i].name << std::endl;
+       float sum = 0.0f;
+       for (float x : valLosses[i] ) sum += x;
+       float avg = sum / valLosses[i].size();
+       std::cout << "\tavg. loss=" << std::fixed << std::setprecision(3) << avg;
+       valPredictions[i] = (valPredictions[i] >= 0.0f).to(torch::kInt64);
+       for (const auto& metric : tasks[i].metrics) {
+         float val = metric.second(valLabels[i], valPredictions[i]);
+         std::cout << " " << metric.first << "=" << std::fixed << std::setprecision(3) << val;
+       }
+       std::cout << std::endl;
+     }
 	}
 }

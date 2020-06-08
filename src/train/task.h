@@ -5,21 +5,24 @@
 #include <vector>
 #include <torch/torch.h>
 
+typedef std::pair<std::string,std::function<float (torch::Tensor&, torch::Tensor&)>> Metric;
+
+enum TaskType {
+  Regression       = 1 << 0,
+  Binary           = 2 << 0,
+  TokenLevel       = 3 << 0,
+  NeedsTranslation = 4 << 0,
+};
+
 class Task {
   public:
     Task();
-    void init(const std::string &name);
-    std::string getName() const;
-    void addMetric(const std::string &metric);
-    std::vector<std::string> getMetrics() const;
-    void setLossMultiplier(float lossMultiplier);
-    float getLossMultiplier() const;
-    template <typename M> void setCriterion(M taskCriterion);
-    template <typename M> M getCriterion() const;
-  private:
-    template <typename M> static M criterion;
+    void addMetric(std::string metric);
     std::string name;
-    std::vector<std::string> metrics;
+    std::string baseDir;
+    std::vector<Metric> metrics;
     float lossMultiplier = 0.1f;
+    template <typename M> static M criterion;
+    int taskType = 0;
 };
 #endif

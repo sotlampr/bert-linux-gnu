@@ -5,6 +5,9 @@
 #define PADDING_IDX 0
 #define LAYER_NORM_EPS 1e-12
 #define MAX_SEQUENCE_LENGTH 100
+#define DELIMITER ','
+#define SNIFF_LINES 100
+#define DO_LOWERCASE true  // TODO: detect automatically based on model
 
 class Config {
   public:
