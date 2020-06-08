@@ -13,19 +13,23 @@
 #include "train_loop.h"
 #include "task.h"
 
-void initCriteria(std::vector<Task>& tasks) {
-  std::for_each(tasks.begin(), tasks.end(),
-    [](Task &t) -> Task {
-        if ((Regression & t.taskType) == Regression) {
-          throw std::runtime_error("Regression not implemented");
-        } else if ((Binary & t.taskType) == Binary) {
-          auto criterion = torch::nn::BCEWithLogitsLoss();
-          t.criterion<torch::nn::BCEWithLogitsLoss> = std::move(criterion);
-        } else {
-          throw std::runtime_error("Regression not implemented");
-        }
-        return t;
-   });
+void initCriteria(std::vector<Task>& tasks,
+                  TextDatasetType& dataset) {
+  std::vector<torch::Tensor> weights = dataset.dataset().getClassWeights(tasks);
+
+  for (size_t i = 0; i< tasks.size(); i++) {
+    if ((Regression & tasks[i].taskType) == Regression) {
+      throw std::runtime_error("Regression not implemented");
+    } else if ((Binary & tasks[i].taskType) == Binary) {
+      torch::Tensor pos_weight = weights[i];
+      auto criterion = torch::nn::BCEWithLogitsLoss(
+        torch::nn::BCEWithLogitsLossOptions().pos_weight(pos_weight)
+      );
+      tasks[i].criterion<torch::nn::BCEWithLogitsLoss> = std::move(criterion);
+    } else {
+      throw std::runtime_error("Multiclass classification not implemented");
+    }
+  }
 }
 
 void runTraining(const Config &config,
@@ -60,7 +64,7 @@ void runTraining(const Config &config,
       torch::data::DataLoaderOptions().batch_size(batchSize).workers(numWorkers));
 
   // Initialize criteria
-  initCriteria(tasks);
+  initCriteria(tasks, trainDataset);
 
 	// Initialize optimizer
   std::vector<torch::Tensor> parameters = model->parameters(true);
