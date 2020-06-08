@@ -34,7 +34,8 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("model_name")
+    parser = argparse.ArgumentParser(
+        "Extract a pytorch-transformers BERT model's weight and vocabulary")
+    parser.add_argument("model-name")
     parser.add_argument("-d", "--dir", default="./models")
     main(parser.parse_args())
