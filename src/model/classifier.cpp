@@ -12,7 +12,11 @@ BinaryClassifierImpl::BinaryClassifierImpl(Config const &config, int numLabels)
 }
 
 torch::Tensor BinaryClassifierImpl::forward(torch::Tensor hidden) {
-  return dense->forward(dropout->forward(hidden));
+  torch::Tensor output = dense->forward(dropout->forward(hidden));
+  if (dense->options.out_features() == 1) {
+    return output.squeeze(-1);
+  }
+  return output;
 }
 
 MulticlassClassifierImpl::MulticlassClassifierImpl() {};

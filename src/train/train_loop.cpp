@@ -25,7 +25,7 @@ void innerLoop(BertModel &model,
 			});
 
       torch::Tensor output = model->forward(data);
-      torch::Tensor loss = torch::zeros(tasks.size(), torch::requires_grad()).to(torch::kCUDA);
+      torch::Tensor loss = torch::zeros(1, torch::requires_grad()).to(torch::kCUDA);
       torch::Tensor taskPredictions, taskLoss;
       
       for (size_t i = 0; i < tasks.size(); i++) {
