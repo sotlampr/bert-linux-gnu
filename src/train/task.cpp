@@ -22,5 +22,9 @@ void Task::addMetric(std::string metric) {
   throw std::runtime_error("No metric `" + metric + "`");
 }
 
-template <typename M> M Task::criterion;
-template torch::nn::BCEWithLogitsLoss Task::criterion<torch::nn::BCEWithLogitsLoss>;
+
+template <typename ModuleType>
+TaskWithCriterion::TaskWithCriterion(Task& t,  ModuleType module)
+  : Task (t), criterion (module) {};
+
+template TaskWithCriterion::TaskWithCriterion<torch::nn::BCEWithLogitsLoss>(Task&, torch::nn::BCEWithLogitsLoss);

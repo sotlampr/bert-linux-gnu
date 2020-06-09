@@ -13,8 +13,9 @@
 #include "train_loop.h"
 #include "task.h"
 
-void initCriteria(std::vector<Task>& tasks,
-                  TextDatasetType& dataset) {
+std::vector<TaskWithCriterion> initTaskCriteria(std::vector<Task>& tasks,
+                                                TextDatasetType& dataset) {
+  std::vector<TaskWithCriterion> out;
   std::vector<torch::Tensor> weights = dataset.dataset().getClassWeights(tasks);
 
   for (size_t i = 0; i< tasks.size(); i++) {
@@ -22,20 +23,25 @@ void initCriteria(std::vector<Task>& tasks,
       throw std::runtime_error("Regression not implemented");
     } else if ((Binary & tasks[i].taskType) == Binary) {
       torch::Tensor pos_weight = weights[i];
-      auto criterion = torch::nn::BCEWithLogitsLoss(
-        torch::nn::BCEWithLogitsLossOptions().pos_weight(pos_weight)
+      out.push_back(
+        TaskWithCriterion(
+          tasks[i],
+          torch::nn::BCEWithLogitsLoss(
+            torch::nn::BCEWithLogitsLossOptions().pos_weight(pos_weight)
+          )
+        )
       );
-      tasks[i].criterion<torch::nn::BCEWithLogitsLoss> = std::move(criterion);
     } else {
       throw std::runtime_error("Multiclass classification not implemented");
     }
   }
+  return out;
 }
 
 void runTraining(const Config &config,
                  const std::string &modelDir,
                  const std::string &dataDir,
-                 std::vector<Task> &tasks,
+                 std::vector<Task> &tasks_,
                  size_t batchSize,
                  size_t numWorkers,
                  size_t numEpochs) {
@@ -48,8 +54,8 @@ void runTraining(const Config &config,
 	classifier->to(torch::kCUDA);
 
 	//Initialize dataset
-  TextDatasetType trainDataset = getDataset(modelDir, tasks, "train");
-  TextDatasetType valDataset = getDataset(modelDir, tasks, "val");
+  TextDatasetType trainDataset = getDataset(modelDir, tasks_, "train");
+  TextDatasetType valDataset = getDataset(modelDir, tasks_, "val");
 
 	// Get label tensor sizes
   std::vector<torch::IntArrayRef> trainLabelSizes = trainDataset.dataset().getLabelSizes();
@@ -64,7 +70,7 @@ void runTraining(const Config &config,
       torch::data::DataLoaderOptions().batch_size(batchSize).workers(numWorkers));
 
   // Initialize criteria
-  initCriteria(tasks, trainDataset);
+  std::vector<TaskWithCriterion> tasks = initTaskCriteria(tasks_, trainDataset);
 
 	// Initialize optimizer
   std::vector<torch::Tensor> parameters = model->parameters(true);

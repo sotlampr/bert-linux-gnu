@@ -22,7 +22,13 @@ class Task {
     std::string baseDir;
     std::vector<Metric> metrics;
     float lossMultiplier = 0.1f;
-    template <typename M> static M criterion;
     int taskType = 0;
+};
+
+class TaskWithCriterion : public Task {
+    public:
+      template <typename ModuleType>
+      TaskWithCriterion(Task& t,  ModuleType module);
+      torch::nn::AnyModule criterion;
 };
 #endif

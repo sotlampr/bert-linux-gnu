@@ -9,7 +9,7 @@
 void innerLoop(BertModel &model,
                BinaryClassifier &classifier,
                TextDataLoaderType &loader,
-               std::vector<Task> &tasks,
+               std::vector<TaskWithCriterion> &tasks,
                std::vector<std::vector<float>> &losses,
                std::vector<torch::Tensor> &labels,
                std::vector<torch::Tensor> &predictions,
@@ -31,7 +31,7 @@ void innerLoop(BertModel &model,
       
       for (size_t i = 0; i < tasks.size(); i++) {
         taskLogits = classifier->forward(output).squeeze();
-        taskLoss = tasks[i].criterion<torch::nn::BCEWithLogitsLoss>->forward(taskLogits, batchLabels[i]);
+        taskLoss = tasks[i].criterion.forward(taskLogits, batchLabels[i]);
         loss += taskLoss * tasks[i].lossMultiplier;
         losses[i].push_back(taskLoss.item<float>());
         labels[i].index_put_({torch::indexing::Slice(startIdx, startIdx+batchLabels[i].sizes()[0])}, batchLabels[i]);
@@ -53,7 +53,7 @@ void innerLoop(BertModel &model,
 void trainLoop(BertModel &model,
                BinaryClassifier &classifier,
                TextDataLoaderType &loader,
-               std::vector<Task> &tasks,
+               std::vector<TaskWithCriterion> &tasks,
                std::vector<std::vector<float>> &losses,
                std::vector<torch::Tensor> &labels,
                std::vector<torch::Tensor> &predictions,
@@ -72,7 +72,7 @@ void trainLoop(BertModel &model,
 void trainLoop(BertModel &model,
                BinaryClassifier &classifier,
                TextDataLoaderType &loader,
-               std::vector<Task> &tasks,
+               std::vector<TaskWithCriterion> &tasks,
                std::vector<std::vector<float>> &losses,
                std::vector<torch::Tensor> &labels,
                std::vector<torch::Tensor> &predictions) {
