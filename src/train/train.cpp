@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
 			{NULL,                    0,                 NULL,   0  }
 	};
 
-	while ((c = getopt_long(argc, argv, "-:b:e:w:M:D:t:m:h", options, &opt)) != -1) {
+	while ((c = getopt_long(argc, argv, "-:b:e:w:M:D:t:m:l:h", options, &opt)) != -1) {
     switch (c) {
       case 1:
         printf("Invalid argument '%s'\n", optarg); /* non-option arg */
