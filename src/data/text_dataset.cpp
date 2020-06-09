@@ -50,7 +50,7 @@ std::vector<torch::Tensor> TextDataset::getClassWeights(const std::vector<Task>&
         if (labels[i].ndimension() != 1) {
           throw std::runtime_error("Multilabel classification not implemented");
         } else {
-          torch::Tensor numClasses = labels[i].max().to(torch::kFloat);
+          torch::Tensor numClasses = (labels[i].max() + 1).to(torch::kFloat);
           torch::Tensor weights = torch::zeros(numClasses.item<long>()).to(torch::kFloat);;
           long numSamples = labels[i].sizes()[0];
 
@@ -68,5 +68,5 @@ std::vector<torch::Tensor> TextDataset::getClassWeights(const std::vector<Task>&
 TextDatasetType getDataset(const std::string& modelDir,
                            const std::vector<Task>& tasks,
                            const std::string& subset) {
-  return TextDataset(modelDir, tasks ,subset).map(MultiTaskStack());
+  return TextDataset(modelDir, tasks, subset).map(MultiTaskStack());
 }

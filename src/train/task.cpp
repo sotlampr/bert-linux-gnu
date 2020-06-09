@@ -1,10 +1,19 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include "task.h"
 #include "metrics.h"
+#include "model.h"
+#include "task.h"
 
 Task::Task() {};
+
+template <typename M1, typename M2>
+Task::Task(Task& t,  M1 classifier_, M2 criterion_,
+           std::function<torch::Tensor (torch::Tensor)> logitsToPredictions_)
+  : name (t.name), baseDir(t.baseDir), metrics (t.metrics),
+    lossMultiplier (t.lossMultiplier), taskType (t.taskType),
+    criterion(criterion_), classifier(classifier_),
+    logitsToPredictions (logitsToPredictions_) {};
 
 void Task::addMetric(std::string metric) {
   if (metric == "accuracy") {
@@ -22,9 +31,8 @@ void Task::addMetric(std::string metric) {
   throw std::runtime_error("No metric `" + metric + "`");
 }
 
+template Task::Task<BinaryClassifier, torch::nn::BCEWithLogitsLoss >
+(Task&, BinaryClassifier, torch::nn::BCEWithLogitsLoss, std::function<torch::Tensor (torch::Tensor)>);
 
-template <typename ModuleType>
-TaskWithCriterion::TaskWithCriterion(Task& t,  ModuleType module)
-  : Task (t), criterion (module) {};
-
-template TaskWithCriterion::TaskWithCriterion<torch::nn::BCEWithLogitsLoss>(Task&, torch::nn::BCEWithLogitsLoss);
+template Task::Task<MulticlassClassifier, torch::nn::CrossEntropyLoss>
+(Task&, MulticlassClassifier, torch::nn::CrossEntropyLoss, std::function<torch::Tensor (torch::Tensor)>);

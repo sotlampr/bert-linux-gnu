@@ -7,27 +7,24 @@
 #include "train/task.h"
 
 inline void innerLoop(BertModel &model,
-                      BinaryClassifier &classifier,
+                      std::vector<Task> &tasks,
                       TextDataLoaderType &loader,
-                      std::vector<TaskWithCriterion> &tasks,
                       std::vector<std::vector<float>> &losses,
                       std::vector<torch::Tensor> &labels,
                       std::vector<torch::Tensor> &predictions,
                       std::function<void (torch::Tensor)> callback);
 
 void trainLoop(BertModel &model,
-               BinaryClassifier &classifier,
+               std::vector<Task> &tasks,
                TextDataLoaderType &loader,
-               std::vector<TaskWithCriterion> &tasks,
                std::vector<std::vector<float>> &losses,
                std::vector<torch::Tensor> &labels,
                std::vector<torch::Tensor> &predictions,
                torch::optim::Optimizer &optimizer);
 
 void trainLoop(BertModel &model,
-               BinaryClassifier &classifier,
+               std::vector<Task> &tasks,
                TextDataLoaderType &loader,
-               std::vector<TaskWithCriterion> &tasks,
                std::vector<std::vector<float>> &losses,
                std::vector<torch::Tensor> &labels,
                std::vector<torch::Tensor> &predictions);

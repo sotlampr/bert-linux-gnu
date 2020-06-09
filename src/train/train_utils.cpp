@@ -13,9 +13,10 @@
 #include "train_loop.h"
 #include "task.h"
 
-std::vector<TaskWithCriterion> initTaskCriteria(std::vector<Task>& tasks,
-                                                TextDatasetType& dataset) {
-  std::vector<TaskWithCriterion> out;
+std::vector<Task> initTasks(std::vector<Task>& tasks,
+                            TextDatasetType& dataset,
+                            const Config& config) {
+  std::vector<Task> out;
   std::vector<torch::Tensor> weights = dataset.dataset().getClassWeights(tasks);
 
   for (size_t i = 0; i< tasks.size(); i++) {
@@ -24,38 +25,54 @@ std::vector<TaskWithCriterion> initTaskCriteria(std::vector<Task>& tasks,
     } else if ((Binary & tasks[i].taskType) == Binary) {
       torch::Tensor pos_weight = weights[i];
       out.push_back(
-        TaskWithCriterion(
+        Task(
           tasks[i],
+          BinaryClassifier(config),
           torch::nn::BCEWithLogitsLoss(
             torch::nn::BCEWithLogitsLossOptions().pos_weight(pos_weight)
-          )
+          ),
+          [] (torch::Tensor logits) -> torch::Tensor {
+            return (logits >= 0.0f).to(torch::kInt64);
+          }
         )
       );
+      out.back().classifier.ptr()->to(torch::kCUDA);
     } else {
-      throw std::runtime_error("Multiclass classification not implemented");
+      torch::Tensor weight = weights[i];
+      out.push_back(
+        Task(
+          tasks[i],
+          MulticlassClassifier(config, weight.size(0)),
+          torch::nn::CrossEntropyLoss(
+            torch::nn::CrossEntropyLossOptions().weight(weight).ignore_index(CLASSIFICATION_IGNORE_INDEX)
+          ),
+          [] (torch::Tensor logits) -> torch::Tensor {
+            return logits.argmax(-1);
+          }
+        )
+      );
+      out.back().classifier.ptr()->to(torch::kCUDA);
     }
   }
   return out;
 }
 
-void runTraining(const Config &config,
-                 const std::string &modelDir,
-                 const std::string &dataDir,
-                 std::vector<Task> &tasks_,
+void runTraining(const Config& config,
+                 const std::string& modelDir,
+                 const std::string& dataDir,
+                 std::vector<Task>& tasks,
                  size_t batchSize,
                  size_t numWorkers,
                  size_t numEpochs) {
 
 	// Initialize models
   BertModel model(config);
-  BinaryClassifier classifier(config);
   loadState(modelDir, *model);
 	model->to(torch::kCUDA);
-	classifier->to(torch::kCUDA);
 
 	//Initialize dataset
-  TextDatasetType trainDataset = getDataset(modelDir, tasks_, "train");
-  TextDatasetType valDataset = getDataset(modelDir, tasks_, "val");
+  TextDatasetType trainDataset = getDataset(modelDir, tasks, "train");
+  TextDatasetType valDataset = getDataset(modelDir, tasks, "val");
 
 	// Get label tensor sizes
   std::vector<torch::IntArrayRef> trainLabelSizes = trainDataset.dataset().getLabelSizes();
@@ -70,12 +87,14 @@ void runTraining(const Config &config,
       torch::data::DataLoaderOptions().batch_size(batchSize).workers(numWorkers));
 
   // Initialize criteria
-  std::vector<TaskWithCriterion> tasks = initTaskCriteria(tasks_, trainDataset);
+  tasks = initTasks(tasks, trainDataset, config);
 
 	// Initialize optimizer
   std::vector<torch::Tensor> parameters = model->parameters(true);
-  std::vector<torch::Tensor> classifierParameters = classifier->parameters(true);
-  parameters.insert(parameters.begin(), classifierParameters.begin(), classifierParameters.end());
+  for (auto& task : tasks) {
+    std::vector<torch::Tensor> classifierParameters = task.classifier.ptr()->parameters(true);
+    parameters.insert(parameters.begin(), classifierParameters.begin(), classifierParameters.end());
+  }
   torch::optim::Adam optimizer(parameters, torch::optim::AdamOptions(1e-5));
 
   for (int epoch=1; epoch <= numEpochs; epoch++) {
@@ -98,7 +117,7 @@ void runTraining(const Config &config,
       valPredictions.push_back(torch::zeros(*it));
     }
 
-    trainLoop(model, classifier, trainLoader, tasks, trainLosses, trainLabels, trainPredictions, optimizer);
+    trainLoop(model, tasks, trainLoader, trainLosses, trainLabels, trainPredictions, optimizer);
     std::cout << "\tOK" << std::endl;
   
     for (size_t i = 0; i < tasks.size(); i++){
@@ -116,7 +135,7 @@ void runTraining(const Config &config,
     }
 
     std::cout << "Validation..." << std::flush;
-    trainLoop(model, classifier, valLoader, tasks, valLosses, valLabels, valPredictions);
+    trainLoop(model, tasks, valLoader, valLosses, valLabels, valPredictions);
     std::cout << "\tOK" << std::endl;
 
     for (size_t i = 0; i < tasks.size(); i++){

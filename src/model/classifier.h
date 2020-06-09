@@ -12,4 +12,14 @@ class BinaryClassifierImpl : public torch::nn::Module {
     torch::nn::Linear dense{nullptr};
     torch::nn::Dropout dropout{nullptr};
 }; TORCH_MODULE(BinaryClassifier);
+
+class MulticlassClassifierImpl : public torch::nn::Module {
+  public:
+    MulticlassClassifierImpl();
+    explicit MulticlassClassifierImpl(Config const &config, int numClasses);
+    torch::Tensor forward(torch::Tensor hidden);
+  private:
+    torch::nn::Linear dense{nullptr};
+    torch::nn::Dropout dropout{nullptr};
+}; TORCH_MODULE(MulticlassClassifier);
 #endif

@@ -16,19 +16,21 @@ enum TaskType {
 
 class Task {
   public:
+    // Construct with classifier, criterion and logitsToPredictions function
+    template <typename M1, typename M2>
+    Task(Task& t,  M1 classifier_, M2 criterion_,
+         std::function<torch::Tensor (torch::Tensor)> logitsToPredictions_);
+
     Task();
+
     void addMetric(std::string metric);
     std::string name;
     std::string baseDir;
     std::vector<Metric> metrics;
     float lossMultiplier = 0.1f;
     int taskType = 0;
-};
-
-class TaskWithCriterion : public Task {
-    public:
-      template <typename ModuleType>
-      TaskWithCriterion(Task& t,  ModuleType module);
-      torch::nn::AnyModule criterion;
+    torch::nn::AnyModule criterion;
+    torch::nn::AnyModule classifier;
+    std::function<torch::Tensor (torch::Tensor)> logitsToPredictions;
 };
 #endif

@@ -7,9 +7,8 @@
 
 
 void innerLoop(BertModel &model,
-               BinaryClassifier &classifier,
+               std::vector<Task> &tasks,
                TextDataLoaderType &loader,
-               std::vector<TaskWithCriterion> &tasks,
                std::vector<std::vector<float>> &losses,
                std::vector<torch::Tensor> &labels,
                std::vector<torch::Tensor> &predictions,
@@ -22,21 +21,22 @@ void innerLoop(BertModel &model,
       auto batchLabels = batch.target;
 			std::for_each(batchLabels.begin(), batchLabels.end(), 
 				[](torch::Tensor &t) {
-					t = t.cuda().to(torch::kFloat);
+					t = t.cuda();
 			});
 
       torch::Tensor output = model->forward(data);
       torch::Tensor loss = torch::zeros(tasks.size(), torch::requires_grad()).to(torch::kCUDA);
-      torch::Tensor taskLoss, taskLogits;
+      torch::Tensor taskPredictions, taskLoss;
       
       for (size_t i = 0; i < tasks.size(); i++) {
-        taskLogits = classifier->forward(output).squeeze();
+        torch::Tensor taskLogits = tasks[i].classifier.forward(output);
         taskLoss = tasks[i].criterion.forward(taskLogits, batchLabels[i]);
         loss += taskLoss * tasks[i].lossMultiplier;
         losses[i].push_back(taskLoss.item<float>());
-        labels[i].index_put_({torch::indexing::Slice(startIdx, startIdx+batchLabels[i].sizes()[0])}, batchLabels[i]);
-        predictions[i].index_put_({torch::indexing::Slice(startIdx, startIdx+taskLogits.sizes()[0])}, taskLogits);
-        break;
+        labels[i].index_put_({torch::indexing::Slice(startIdx, startIdx+batchLabels[i].size(0))}, batchLabels[i]);
+
+        taskPredictions = tasks[i].logitsToPredictions(taskLogits);
+        predictions[i].index_put_({torch::indexing::Slice(startIdx, startIdx+taskPredictions.size(0))}, taskPredictions);
 			}
 
       startIdx += batchSize;
@@ -51,34 +51,39 @@ void innerLoop(BertModel &model,
 
 // Training
 void trainLoop(BertModel &model,
-               BinaryClassifier &classifier,
+               std::vector<Task> &tasks,
                TextDataLoaderType &loader,
-               std::vector<TaskWithCriterion> &tasks,
                std::vector<std::vector<float>> &losses,
                std::vector<torch::Tensor> &labels,
                std::vector<torch::Tensor> &predictions,
                torch::optim::Optimizer &optimizer) {
   model->train();
-  classifier->train();
+  for (auto& task : tasks) {
+    task.classifier.ptr()->train();
+  }
   auto callback = [&] (torch::Tensor loss) {
       model->zero_grad();
+      for (auto& task : tasks) {
+        task.classifier.ptr()->zero_grad();
+      }
       loss.backward();
       optimizer.step();
   };
-  innerLoop(model, classifier, loader, tasks, losses, labels, predictions, callback);
+  innerLoop(model, tasks, loader, losses, labels, predictions, callback);
 }
 
 // Validation
 void trainLoop(BertModel &model,
-               BinaryClassifier &classifier,
+               std::vector<Task> &tasks,
                TextDataLoaderType &loader,
-               std::vector<TaskWithCriterion> &tasks,
                std::vector<std::vector<float>> &losses,
                std::vector<torch::Tensor> &labels,
                std::vector<torch::Tensor> &predictions) {
   torch::NoGradGuard no_grad;
   model->eval();
-  classifier->eval();
+  for (auto& task : tasks) {
+    task.classifier.ptr()->eval();
+  }
   auto callback = [] (torch::Tensor loss) {};
-  innerLoop(model, classifier, loader, tasks, losses, labels, predictions, callback);
+  innerLoop(model, tasks, loader, losses, labels, predictions, callback);
 }
