@@ -1,7 +1,7 @@
 #include <torch/torch.h>
 
 #include "config.h"
-#include "binary_classifier.h"
+#include "classifier.h"
 
 BinaryClassifierImpl::BinaryClassifierImpl() {};
 BinaryClassifierImpl::BinaryClassifierImpl(Config const &config, int numLabels)
