@@ -3,6 +3,7 @@
 #include "metrics_utils.h"
 
 float matthewsCorrelationCoefficient(torch::Tensor &labels, torch::Tensor &predictions) {
+  // TODO: multi-class case
   long TP = truePositives(labels, predictions);
   long TN = trueNegatives(labels, predictions);
   long FP = falsePositives(labels, predictions);
@@ -20,15 +21,13 @@ float matthewsCorrelationCoefficient(torch::Tensor &labels, torch::Tensor &predi
 }
 
 float accuracy(torch::Tensor &labels, torch::Tensor &predictions) {
-  long TP = truePositives(labels, predictions);
-  long TN = trueNegatives(labels, predictions);
-
-  long numerator = TP + TN;
-  long denominator = labels.sizes()[0];
+  long numerator = (labels == predictions).sum().item<long>();
+  long denominator = labels.size(0);
   return static_cast<float>(numerator) / static_cast<float>(denominator);
 }
 
 float f1Score(torch::Tensor &labels, torch::Tensor &predictions) {
+  // TODO: multi-class case
   long TP = truePositives(labels, predictions);
   long FP = falsePositives(labels, predictions);
   long FN = falseNegatives(labels, predictions);
