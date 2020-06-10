@@ -10,11 +10,13 @@
 #include "unicode_converter.h"
 #include "wordpiece_tokenizer.h"
 
+using Vocabulary = std::pair<std::map<icu::UnicodeString,long>,std::map<long,icu::UnicodeString>>;
+
 class FullTokenizer {
   public:
-    FullTokenizer(const std::string &vocabFile, bool doLowerCase);
-    std::pair<std::map<icu::UnicodeString,long>,std::map<long,icu::UnicodeString>>
-      readVocabulary(const std::string &vocabFile);
+    explicit FullTokenizer(const std::string &modelDir);
+    bool getDoLowercase(const std::string& modelDir) const;
+    Vocabulary readVocabulary(const std::string &modelDir);
     std::vector<icu::UnicodeString> tokenize(const std::string &s);
     std::vector<long> tokenizeToIds (const std::string &s);
     long tokenToId(const icu::UnicodeString &s) const;
@@ -23,7 +25,6 @@ class FullTokenizer {
     std::map<UnicodeString, long> vocab;
     std::map<long, UnicodeString> invVocab;
     UErrorCode uErr = U_ZERO_ERROR;
-    const bool doLowerCase;
     UnicodeConverter &unicoder;
     const BasicTokenizer &basicTokenizer;
     WordPieceTokenizer &wordPieceTokenizer;

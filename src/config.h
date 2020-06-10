@@ -7,7 +7,6 @@
 #define MAX_SEQUENCE_LENGTH 100
 #define DELIMITER ','
 #define SNIFF_LINES 100
-#define DO_LOWERCASE true  // TODO: detect automatically based on model
 #define CLASSIFICATION_IGNORE_INDEX -1
 
 class Config {

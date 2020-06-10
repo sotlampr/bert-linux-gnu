@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
 
   std::string modelDir = argv[1];
 
-  FullTokenizer *tokenizer = new FullTokenizer(modelDir + "/vocab.txt", true);
+  FullTokenizer *tokenizer = new FullTokenizer(modelDir);
   std::ifstream file(argv[2]);
   std::string line;
   while (std::getline(file, line)) {

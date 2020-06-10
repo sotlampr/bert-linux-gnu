@@ -15,7 +15,7 @@ torch::Tensor readTextsToTensor(const std::string& modelDir,
                                 const std::vector<Task>& tasks,
                                 const std::string& subset) {
   // Initialize tokenizer
-  FullTokenizer *tokenizer = new FullTokenizer(modelDir + "/vocab.txt", DO_LOWERCASE);
+  FullTokenizer *tokenizer = new FullTokenizer(modelDir);
 
   // Prepare file stream
   std::string fname = tasks[0].baseDir + "/" + subset + "-texts";

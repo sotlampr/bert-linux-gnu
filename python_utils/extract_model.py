@@ -7,6 +7,8 @@ import shutil
 
 import torch
 from pytorch_transformers import BertModel, BertTokenizer
+from pytorch_transformers.tokenization_bert \
+    import PRETRAINED_INIT_CONFIGURATION
 
 
 def main(args):
@@ -16,6 +18,9 @@ def main(args):
     model_dir = args.dir + "/" + args.model_name
     os.makedirs(model_dir, exist_ok=True)
     shutil.copy2(vocab_file, f"{model_dir}/vocab.txt")
+
+    if PRETRAINED_INIT_CONFIGURATION[args.model_name]["do_lower_case"]:
+        open(f"{model_dir}/lowercase", 'w').close()
 
     model = BertModel.from_pretrained(args.model_name)
     for k, v in model.named_parameters():
@@ -29,13 +34,13 @@ def main(args):
                 values.tofile(fp)
         else:
             print(f"error for {k}")
-    print(f"Extracted {args.model_name} to {model_dir}")
+    print(f"Extracted `{args.model_name}` to `{model_dir}`")
     return 0
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         "Extract a pytorch-transformers BERT model's weight and vocabulary")
-    parser.add_argument("model-name")
+    parser.add_argument("model_name")
     parser.add_argument("-d", "--dir", default="./models")
     main(parser.parse_args())
