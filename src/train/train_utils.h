@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "config.h"
+#include "data.h"
 #include "task.h"
 
 void runTraining(const Config &config,
@@ -13,4 +14,8 @@ void runTraining(const Config &config,
                  int batchSize,
                  int numWorkers,
                  int numEpochs);
+
+std::vector<Task> initTasks(std::vector<Task>& tasks,
+                            TextDatasetType& dataset,
+                            const Config& config);
 #endif

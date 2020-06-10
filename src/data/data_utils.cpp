@@ -1,13 +1,13 @@
+#include "data_utils.h"
+
 #include <set>
 #include <vector>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
-#include <torch/torch.h>
+#include <torch/types.h>
 
 #include "config.h"
-#include "data_utils.h"
-#include "train/task.h"
 #include "tokenize.h"
 
 

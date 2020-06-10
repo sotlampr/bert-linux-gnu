@@ -1,5 +1,8 @@
+#include "metrics_functions.h"
+
 #include <cmath>
 #include <limits>
+
 #include "metrics_utils.h"
 
 float matthewsCorrelationCoefficient(torch::Tensor &labels, torch::Tensor &predictions) {

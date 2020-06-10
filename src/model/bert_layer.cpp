@@ -1,10 +1,4 @@
-#include <torch/torch.h>
-
-#include "config.h"
-#include "bert_attention.h"
-#include "bert_intermediate.h"
 #include "bert_layer.h"
-#include "bert_output.h"
 
 BertLayerImpl::BertLayerImpl() {}
 BertLayerImpl::BertLayerImpl(Config const &config)

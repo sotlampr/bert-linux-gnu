@@ -16,5 +16,7 @@ std::vector<torch::Tensor> readLabelsToTensor(const std::vector<Task>& tasks,
 template <typename T>
 std::vector<T> readLabels(std::string fname);
 
+template <typename T> T stringToNumber(const std::string& s);
+
 void detectTaskType(Task& task);
 #endif

@@ -1,8 +1,6 @@
-#include <cmath>
-#include <torch/torch.h>
-
-#include "config.h"
 #include "bert_self_attention.h"
+
+#include <cmath>
 
 BertSelfAttentionImpl::BertSelfAttentionImpl() {}
 

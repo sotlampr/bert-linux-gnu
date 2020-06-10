@@ -1,10 +1,4 @@
-#include <torch/torch.h>
-
-#include "config.h"
-#include "bert_encoder.h"
-#include "bert_embeddings.h"
 #include "bert_model.h"
-#include "bert_pooler.h"
 
 BertModelImpl::BertModelImpl() {}
 BertModelImpl::BertModelImpl(Config const &config)

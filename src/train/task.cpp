@@ -9,7 +9,7 @@ Task::Task() {};
 
 template <typename M1, typename M2>
 Task::Task(Task& t,  M1 classifier_, M2 criterion_,
-           std::function<torch::Tensor (torch::Tensor)> logitsToPredictions_)
+           LogitsToPredictionsFunc&& logitsToPredictions_)
   : name (t.name), baseDir(t.baseDir), metrics (t.metrics),
     lossMultiplier (t.lossMultiplier), taskType (t.taskType),
     criterion(criterion_), classifier(classifier_),
@@ -32,7 +32,7 @@ void Task::addMetric(std::string metric) {
 }
 
 template Task::Task<BinaryClassifier, torch::nn::BCEWithLogitsLoss >
-(Task&, BinaryClassifier, torch::nn::BCEWithLogitsLoss, std::function<torch::Tensor (torch::Tensor)>);
+(Task&, BinaryClassifier, torch::nn::BCEWithLogitsLoss, LogitsToPredictionsFunc&&);
 
 template Task::Task<MulticlassClassifier, torch::nn::CrossEntropyLoss>
-(Task&, MulticlassClassifier, torch::nn::CrossEntropyLoss, std::function<torch::Tensor (torch::Tensor)>);
+(Task&, MulticlassClassifier, torch::nn::CrossEntropyLoss, LogitsToPredictionsFunc&&);

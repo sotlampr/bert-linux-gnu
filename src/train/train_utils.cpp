@@ -1,3 +1,5 @@
+#include "train_utils.h"
+
 #include <string>
 #include <tuple>
 #include <vector>
@@ -5,13 +7,10 @@
 #include <iostream>
 #include <stdexcept>
 
-#include "data.h"
 #include "model.h"
 #include "state.h"
 #include "metrics.h"
-#include "train_utils.h"
 #include "train_loop.h"
-#include "task.h"
 
 std::vector<Task> initTasks(std::vector<Task>& tasks,
                             TextDatasetType& dataset,
@@ -31,7 +30,7 @@ std::vector<Task> initTasks(std::vector<Task>& tasks,
           torch::nn::BCEWithLogitsLoss(
             torch::nn::BCEWithLogitsLossOptions().pos_weight(pos_weight)
           ),
-          [] (torch::Tensor logits) -> torch::Tensor {
+          [] (torch::Tensor& logits) -> torch::Tensor {
             return (logits >= 0.0f).to(torch::kInt64);
           }
         )
@@ -46,7 +45,7 @@ std::vector<Task> initTasks(std::vector<Task>& tasks,
           torch::nn::CrossEntropyLoss(
             torch::nn::CrossEntropyLossOptions().weight(weight).ignore_index(CLASSIFICATION_IGNORE_INDEX)
           ),
-          [] (torch::Tensor logits) -> torch::Tensor {
+          [] (torch::Tensor& logits) -> torch::Tensor {
             return logits.argmax(-1);
           }
         )
@@ -61,9 +60,9 @@ void runTraining(const Config& config,
                  const std::string& modelDir,
                  const std::string& dataDir,
                  std::vector<Task>& tasks,
-                 size_t batchSize,
-                 size_t numWorkers,
-                 size_t numEpochs) {
+                 int batchSize,
+                 int numWorkers,
+                 int numEpochs) {
 
 	// Initialize models
   BertModel model(config);
@@ -126,7 +125,6 @@ void runTraining(const Config& config,
       for (float x : trainLosses[i] ) sum += x;
       float avg = sum / trainLosses[i].size();
       std::cout << "\tavg. loss=" << std::fixed << std::setprecision(3) << avg;
-      trainPredictions[i] = (trainPredictions[i] >= 0.0f).to(torch::kInt64);
       for (const auto& metric : tasks[i].metrics) {
         float val = metric.second(trainLabels[i], trainPredictions[i]);
         std::cout << " " << metric.first << "=" << std::fixed << std::setprecision(3) << val;
@@ -139,12 +137,11 @@ void runTraining(const Config& config,
     std::cout << "\tOK" << std::endl;
 
     for (size_t i = 0; i < tasks.size(); i++){
-       std::cout << "Task: " << tasks[i].name << std::endl;
+       std::cout << "\tTask: " << tasks[i].name << std::endl;
        float sum = 0.0f;
        for (float x : valLosses[i] ) sum += x;
        float avg = sum / valLosses[i].size();
-       std::cout << "\tavg. loss=" << std::fixed << std::setprecision(3) << avg;
-       valPredictions[i] = (valPredictions[i] >= 0.0f).to(torch::kInt64);
+       std::cout << "\t\tavg. loss=" << std::fixed << std::setprecision(3) << avg;
        for (const auto& metric : tasks[i].metrics) {
          float val = metric.second(valLabels[i], valPredictions[i]);
          std::cout << " " << metric.first << "=" << std::fixed << std::setprecision(3) << val;

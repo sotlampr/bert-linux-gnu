@@ -7,8 +7,8 @@
 #include <torch/nn/modules/loss.h>
 #include <torch/types.h>
 
-typedef std::pair<std::string,std::function<float (torch::Tensor&, torch::Tensor&)>>
-Metric;
+using Metric = std::pair<std::string,std::function<float (torch::Tensor&, torch::Tensor&)>>;
+using LogitsToPredictionsFunc = std::function<torch::Tensor (torch::Tensor&)>;
 
 enum TaskType {
   Regression       = 1 << 0,
@@ -22,7 +22,7 @@ class Task {
     // Construct with classifier, criterion and logitsToPredictions function
     template <typename M1, typename M2>
     Task(Task& t,  M1 classifier_, M2 criterion_,
-         std::function<torch::Tensor (torch::Tensor)> logitsToPredictions_);
+         LogitsToPredictionsFunc&& logitsToPredictions_);
 
     Task();
 
@@ -34,6 +34,6 @@ class Task {
     int taskType = 0;
     torch::nn::AnyModule criterion;
     torch::nn::AnyModule classifier;
-    std::function<torch::Tensor (torch::Tensor)> logitsToPredictions;
+    LogitsToPredictionsFunc logitsToPredictions;
 };
 #endif

@@ -1,9 +1,4 @@
-#include <torch/torch.h>
-
-#include "config.h"
 #include "bert_attention.h"
-#include "bert_self_attention.h"
-#include "bert_self_output.h"
 
 BertAttentionImpl::BertAttentionImpl() {}
 BertAttentionImpl::BertAttentionImpl(Config const &config)

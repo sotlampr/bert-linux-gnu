@@ -1,6 +1,3 @@
-#include <torch/torch.h>
-
-#include "config.h"
 #include "bert_self_output.h"
 
 BertSelfOutputImpl::BertSelfOutputImpl() {}

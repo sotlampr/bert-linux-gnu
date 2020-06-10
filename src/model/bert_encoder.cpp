@@ -1,7 +1,5 @@
-#include <torch/torch.h>
-
-#include "config.h"
 #include "bert_encoder.h"
+
 #include "bert_layer.h"
 
 BertEncoderImpl::BertEncoderImpl() {}

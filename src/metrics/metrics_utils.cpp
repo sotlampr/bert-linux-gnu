@@ -1,4 +1,3 @@
-#include <torch/torch.h>
 #include "metrics_utils.h"
 
 torch::Tensor logicalAnd(torch::Tensor &a, torch::Tensor &b) {

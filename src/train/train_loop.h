@@ -5,6 +5,7 @@
 #include <torch/optim.h>
 #include <torch/types.h>
 
+#include "data.h"
 #include "model.h"
 #include "train/task.h"
 

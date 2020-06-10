@@ -1,13 +1,15 @@
+#include "state_utils.h"
+
 #include <glob.h>
 #include <iostream>
-#include <vector>
 #include <fstream>
-#include <cassert>
-#include <torch/torch.h>
 #include <stdexcept>
 
+#include <cassert>
+
+#include <torch/utils.h>
+
 #include "model.h"
-#include "state_utils.h"
 
 std::vector<std::string> getParameterFiles (std::string path) {
     glob_t globbuf;

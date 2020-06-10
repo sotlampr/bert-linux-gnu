@@ -1,10 +1,8 @@
+#include "train_loop.h"
+
 #include <tuple>
 #include <vector>
 #include <stdexcept>
-#include <torch/torch.h>
-#include "data.h"
-#include "model.h"
-
 
 void innerLoop(BertModel &model,
                std::vector<Task> &tasks,
@@ -34,7 +32,6 @@ void innerLoop(BertModel &model,
         loss += taskLoss * tasks[i].lossMultiplier;
         losses[i].push_back(taskLoss.item<float>());
         labels[i].index_put_({torch::indexing::Slice(startIdx, startIdx+batchLabels[i].size(0))}, batchLabels[i]);
-
         taskPredictions = tasks[i].logitsToPredictions(taskLogits);
         predictions[i].index_put_({torch::indexing::Slice(startIdx, startIdx+taskPredictions.size(0))}, taskPredictions);
 			}
