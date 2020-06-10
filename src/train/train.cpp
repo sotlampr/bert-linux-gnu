@@ -1,5 +1,8 @@
+#include "train.h"
+
 #include <getopt.h>
 #include <iostream>
+
 #include "config.h"
 #include "data.h"
 #include "task.h"
@@ -7,15 +10,19 @@
 
 #define CHECK_INT_ARG(name, value) \
 if (value == -1) { \
+  printHelp(argv[0]); \
   std::cout << "Error: `" << name "` required" << std::endl; \
   return 1; \
 }
 
 #define CHECK_STR_ARG(name, value) \
 if (value == "") { \
+  printHelp(argv[0]); \
   std::cout << "Error: `" << name "` required" << std::endl; \
   return 1; \
 }
+
+namespace train{
 
 void printHelp(const std::string &programName) {
   std::cout << "Usage:" << std::endl;
@@ -71,6 +78,7 @@ int main(int argc, char *argv[]) {
 	while ((c = getopt_long(argc, argv, "-:b:e:w:M:D:t:m:l:h", options, &opt)) != -1) {
     switch (c) {
       case 1:
+        printHelp(argv[0]);
         printf("Invalid argument '%s'\n", optarg); /* non-option arg */
         return 1;
      case 'b':
@@ -116,9 +124,11 @@ int main(int argc, char *argv[]) {
         lastTask.lossMultiplier = std::stof(optarg);
         break;
       case '?':
+        printHelp(argv[0]);
         printf("Invalid argument -%c\n", optopt);
         return 1;
       case ':':
+        printHelp(argv[0]);
         printf("Missing option for %c\n", optopt);
         return 1;
       default:
@@ -136,6 +146,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (tasks.size() == 0) {
+    printHelp(argv[0]);
     printf("Specify at least a task `-t`\n");
     return 1;
   }
@@ -164,4 +175,5 @@ int main(int argc, char *argv[]) {
   runTraining(config, modelDir, dataDir, tasks, batchSize, numWorkers, numEpochs);
 
   return 0;
+}
 }

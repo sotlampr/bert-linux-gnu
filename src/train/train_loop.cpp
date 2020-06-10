@@ -24,10 +24,10 @@ void innerLoop(BertModel &model,
 
       torch::Tensor output = model->forward(data);
       torch::Tensor loss = torch::zeros(1, torch::requires_grad()).to(torch::kCUDA);
-      torch::Tensor taskPredictions, taskLoss;
+      torch::Tensor taskLogits, taskLoss, taskPredictions;
       
       for (size_t i = 0; i < tasks.size(); i++) {
-        torch::Tensor taskLogits = tasks[i].classifier.forward(output);
+        taskLogits = tasks[i].classifier.forward(output);
         taskLoss = tasks[i].criterion.forward(taskLogits, batchLabels[i]);
         loss += taskLoss * tasks[i].lossMultiplier;
         losses[i].push_back(taskLoss.item<float>());

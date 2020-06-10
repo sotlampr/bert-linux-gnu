@@ -23,7 +23,7 @@ endef
 
 all: checkdirs train
 
-train: $(OBJECTS)
+bert: src/bert.cpp $(OBJECTS)
 	$(CXX) -o $@ $^ $(LDFLAGS) -L$(TORCHLIBS) -Wl,-rpath,$(TORCHLIBS) 
 	
 checkdirs: $(BUILD_DIR)
@@ -33,6 +33,7 @@ $(BUILD_DIR):
 
 clean:
 	@rm -rf $(BUILD_DIR)
+	@rm bert
 
 $(foreach bdir,$(BUILD_DIR),$(eval $(call make-goal,$(bdir))))
 
