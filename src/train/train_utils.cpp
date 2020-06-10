@@ -96,10 +96,22 @@ void runTraining(const Config& config,
   }
   torch::optim::Adam optimizer(parameters, torch::optim::AdamOptions(1e-5));
 
-  for (int epoch=1; epoch <= numEpochs; epoch++) {
-    std::cout << "Epoch " << epoch << "..." << std::flush;
-    std::vector<std::vector<float>> trainLosses(tasks.size()), valLosses(tasks.size());
+  // Print headers
+  std::cout << "epoch";
+  for (auto const& task : tasks){
+    std::cout << "," << task.name << "_train_loss";
+    for (const auto& metric : task.metrics) {
+      std::cout << "," << task.name << "_train_" << metric.first;
+    }
+    std::cout << "," <<  task.name << "_val_loss";
+    for (const auto& metric : task.metrics) {
+      std::cout << "," <<  task.name << "_val_" << metric.first;
+    }
+  }
+  std::cout << std::endl;
 
+  for (int epoch=1; epoch <= numEpochs; epoch++) {
+    std::vector<std::vector<float>> trainLosses(tasks.size()), valLosses(tasks.size());
     std::vector<torch::Tensor> trainLabels, trainPredictions, valLabels, valPredictions;
 
     for (auto it = trainLabelSizes.begin();
@@ -117,36 +129,31 @@ void runTraining(const Config& config,
     }
 
     trainLoop(model, tasks, trainLoader, trainLosses, trainLabels, trainPredictions, optimizer);
-    std::cout << "\tOK" << std::endl;
   
+    std::cout << epoch;
     for (size_t i = 0; i < tasks.size(); i++){
-      std::cout << "Task: " << tasks[i].name << std::endl;
       float sum = 0.0f;
       for (float x : trainLosses[i] ) sum += x;
       float avg = sum / trainLosses[i].size();
-      std::cout << "\tavg. loss=" << std::fixed << std::setprecision(3) << avg;
+      std::cout << "," << avg;
       for (const auto& metric : tasks[i].metrics) {
         float val = metric.second(trainLabels[i], trainPredictions[i]);
-        std::cout << " " << metric.first << "=" << std::fixed << std::setprecision(3) << val;
+        std::cout << "," << val;
       }
-      std::cout << std::endl;
     }
 
-    std::cout << "Validation..." << std::flush;
     trainLoop(model, tasks, valLoader, valLosses, valLabels, valPredictions);
-    std::cout << "\tOK" << std::endl;
 
     for (size_t i = 0; i < tasks.size(); i++){
-       std::cout << "\tTask: " << tasks[i].name << std::endl;
        float sum = 0.0f;
        for (float x : valLosses[i] ) sum += x;
        float avg = sum / valLosses[i].size();
-       std::cout << "\t\tavg. loss=" << std::fixed << std::setprecision(3) << avg;
+       std::cout << "," << avg;
        for (const auto& metric : tasks[i].metrics) {
          float val = metric.second(valLabels[i], valPredictions[i]);
-         std::cout << " " << metric.first << "=" << std::fixed << std::setprecision(3) << val;
+          std::cout << "," << val;
        }
-       std::cout << std::endl;
-     }
+    }
+    std::cout << std::endl;
 	}
 }

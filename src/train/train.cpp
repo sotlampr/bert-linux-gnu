@@ -99,7 +99,7 @@ int main(int argc, char *argv[]) {
         break;
       case 'h':
         printHelp(argv[0]);
-        break;
+        return 1;
       case 't':
         CHECK_STR_ARG("--data-dir", dataDir);
         if (!lastTask.name.empty()) {
@@ -159,16 +159,17 @@ int main(int argc, char *argv[]) {
 
   for (auto& task : tasks) {
     detectTaskType(task);
-    std::cout << "Task: " << task.name << std::endl;
-    std::cout << "\tLoss multiplier: " << task.lossMultiplier << std::endl;
-    std::cout << "\tBaseDir: " << task.baseDir << std::endl;
+    std::cout << "# "
+              << "task=" << task.name
+              << " loss_multiplier=" << task.lossMultiplier
+              << " base_dir=" << task.baseDir;
     for (const auto& metric : task.metrics) {
-      std::cout << "\tMetric: " << metric.first << std::endl;
+      std::cout << " metric=" << metric.first;
     }
-    std::cout << "\tRegression? " << ((Regression & task.taskType) == Regression) << std::endl;
-    std::cout << "\tToken-level? " << ((TokenLevel & task.taskType) == TokenLevel) << std::endl;
-    std::cout << "\tBinary? " << ((Binary & task.taskType) == Binary) << std::endl;
-    std::cout << "\tNeedsTranslation? " << ((NeedsTranslation & task.taskType) == NeedsTranslation) << std::endl;
+    std::cout << " regression?=" << ((Regression & task.taskType) == Regression)
+              << " token_level?=" << ((TokenLevel & task.taskType) == TokenLevel)
+              << " binary?=" << ((Binary & task.taskType) == Binary)
+              << std::endl;
   }
 
   Config config;
