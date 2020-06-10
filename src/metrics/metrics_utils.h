@@ -1,6 +1,7 @@
 #ifndef METRICS_UTILS_H
 #define METRICS_UTILS_H
-#include <torch/torch.h>
+#include <torch/types.h>
+
 torch::Tensor logicalAnd(torch::Tensor &a, torch::Tensor &b);
 long truePositives(torch::Tensor &labels, torch::Tensor &predictions);
 long falsePositives(torch::Tensor &labels, torch::Tensor &predictions);

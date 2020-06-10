@@ -1,11 +1,14 @@
 #ifndef TASK_H
 #define TASK_H
 #include <string>
-#include <variant>
 #include <vector>
-#include <torch/torch.h>
 
-typedef std::pair<std::string,std::function<float (torch::Tensor&, torch::Tensor&)>> Metric;
+#include <torch/nn/modules/container/any.h>
+#include <torch/nn/modules/loss.h>
+#include <torch/types.h>
+
+typedef std::pair<std::string,std::function<float (torch::Tensor&, torch::Tensor&)>>
+Metric;
 
 enum TaskType {
   Regression       = 1 << 0,

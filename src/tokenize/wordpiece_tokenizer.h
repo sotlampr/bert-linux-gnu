@@ -3,6 +3,7 @@
 #include <map>
 #include <string>
 #include <vector>
+
 #include <unicode/ustream.h>
 
 class WordPieceTokenizer {

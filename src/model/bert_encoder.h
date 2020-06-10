@@ -1,6 +1,9 @@
 #ifndef BERT_ENCODER_H
 #define BERT_ENCODER_H
-#include <torch/torch.h>
+#include <torch/nn/module.h>
+#include <torch/nn/modules/container/modulelist.h>
+#include <torch/types.h>
+
 #include "config.h"
 
 class BertEncoderImpl : public torch::nn::Module {

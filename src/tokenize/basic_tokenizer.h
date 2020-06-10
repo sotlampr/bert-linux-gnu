@@ -2,6 +2,7 @@
 #define BASIC_TOKENIZER_H
 #include <string>
 #include <vector>
+
 #include <unicode/ustream.h>
 
 class BasicTokenizer {

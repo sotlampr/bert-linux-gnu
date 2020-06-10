@@ -3,11 +3,12 @@
 #include <map>
 #include <string>
 #include <vector>
+
 #include <unicode/ustream.h>
 
 #include "basic_tokenizer.h"
-#include "wordpiece_tokenizer.h"
 #include "unicode_converter.h"
+#include "wordpiece_tokenizer.h"
 
 class FullTokenizer {
   public:

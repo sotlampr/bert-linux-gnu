@@ -1,6 +1,7 @@
 #ifndef UNICODE_CONVERTER_H
 #define UNICODE_CONVERTER_H
 #include <string>
+
 #include <unicode/ustream.h>
 #include <unicode/normalizer2.h>
 

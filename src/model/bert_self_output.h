@@ -1,6 +1,11 @@
 #ifndef BERT_SELF_OUTPUT_H
 #define BERT_SELF_OUTPUT_H
-#include <torch/torch.h>
+#include <torch/nn/module.h>
+#include <torch/nn/modules/dropout.h>
+#include <torch/nn/modules/linear.h>
+#include <torch/nn/modules/normalization.h>
+#include <torch/types.h>
+
 #include "config.h"
 
 class BertSelfOutputImpl : public torch::nn::Module {

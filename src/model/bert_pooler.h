@@ -1,6 +1,9 @@
 #ifndef BERT_POOLER_Hifndef
 #define BERT_POOLER_Hifndef
-#include <torch/torch.h>
+#include <torch/nn/module.h>
+#include <torch/nn/modules/linear.h>
+#include <torch/types.h>
+
 #include "config.h"
 
 class BertPoolerImpl : public torch::nn::Module {

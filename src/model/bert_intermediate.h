@@ -1,6 +1,9 @@
 #ifndef BERT_INTERMEDIATE_H
 #define BERT_INTERMEDIATE_H
-#include <torch/torch.h>
+#include <torch/nn/module.h>
+#include <torch/nn/modules/linear.h>
+#include <torch/types.h>
+
 #include "config.h"
 
 class BertIntermediateImpl : public torch::nn::Module {

@@ -1,7 +1,10 @@
 #ifndef TEXT_DATASET_H
 #define TEXT_DATASET_H
 #include <vector>
-#include <torch/torch.h>
+
+#include <torch/types.h>
+#include <torch/data.h>
+
 #include "train/task.h"
 
 typedef torch::data::Example<torch::Tensor, std::vector<torch::Tensor>> MultiTaskExample;
@@ -15,7 +18,6 @@ struct MultiTaskStack : public torch::data::transforms::Collation<MultiTaskExamp
     targets.resize(examples[0].target.size());
 
     data.reserve(examples.size());
-    // targets.reserve(examples.size());
 
     for (auto& example : examples) {
       data.push_back(std::move(example.data));
@@ -45,33 +47,10 @@ class TextDataset : public torch::data::Dataset<TextDataset, MultiTaskExample> {
         std::vector<torch::Tensor> labels;
 };
 
-typedef torch::data::datasets::MapDataset<
-  TextDataset,
-  MultiTaskStack
->
+typedef torch::data::datasets::MapDataset<TextDataset,MultiTaskStack>
 TextDatasetType;
 
-typedef torch::disable_if_t<
-  false,
-  std::unique_ptr<
-    torch::data::StatelessDataLoader<
-      torch::data::datasets::MapDataset<
-        TextDataset,
-        MultiTaskStack
-      >,
-      torch::data::samplers::RandomSampler
-    >,
-    std::default_delete<
-      torch::data::StatelessDataLoader<
-        torch::data::datasets::MapDataset<
-          TextDataset,
-          MultiTaskStack
-        >,
-        torch::data::samplers::RandomSampler
-      >
-    >
-  >
->
+typedef torch::disable_if_t<false,std::unique_ptr<torch::data::StatelessDataLoader<torch::data::datasets::MapDataset<TextDataset,MultiTaskStack>,torch::data::samplers::RandomSampler>,std::default_delete<torch::data::StatelessDataLoader<torch::data::datasets::MapDataset<TextDataset,MultiTaskStack>,torch::data::samplers::RandomSampler>>>>
 TextDataLoaderType;
 
 TextDatasetType getDataset(const std::string& modelDir,

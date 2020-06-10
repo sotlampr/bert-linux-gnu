@@ -2,7 +2,11 @@
 #define STATE_UTILS_H
 #include <string>
 #include <vector>
-#include <torch/torch.h>
+
+#include <torch/nn/module.h>
+
+#include "config.h"
+
 std::vector<std::string> getParameterFiles (std::string path);
 std::string getParameterName(std::string fname);
 std::vector<int64_t> getParameterSize(std::string fname);

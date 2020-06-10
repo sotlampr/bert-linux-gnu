@@ -1,6 +1,8 @@
 #ifndef BERT_ATTENTION_H
 #define BERT_ATTENTION_H
-#include <torch/torch.h>
+#include <torch/nn/module.h>
+#include <torch/types.h>
+
 #include "config.h"
 #include "bert_self_attention.h"
 #include "bert_self_output.h"

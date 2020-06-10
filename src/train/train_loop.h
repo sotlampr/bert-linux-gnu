@@ -1,8 +1,10 @@
 #ifndef TRAIN_LOOP_H
 #define TRAIN_LOOP_H
-#include <tuple>
 #include <vector>
-#include <torch/torch.h>
+
+#include <torch/optim.h>
+#include <torch/types.h>
+
 #include "model.h"
 #include "train/task.h"
 
