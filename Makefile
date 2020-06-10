@@ -1,3 +1,4 @@
+SHELL := /bin/bash
 PREFIX := $(shell python -c "import sys; print(sys.exec_prefix)")
 INCLUDE := $(shell python -c "import torch.utils.cpp_extension as C; print('-I' + str.join(' -I', C.include_paths()))")
 TORCHLIBS := $(shell python -c "import torch.utils.cpp_extension as C; print(C.include_paths()[0] + '/../lib')")
@@ -21,7 +22,7 @@ endef
 
 .PHONY: all checkdirs clean
 
-all: checkdirs train
+all: checkdirs bert
 
 bert: src/bert.cpp $(OBJECTS)
 	$(CXX) -o $@ $^ $(LDFLAGS) -L$(TORCHLIBS) -Wl,-rpath,$(TORCHLIBS) 
@@ -38,10 +39,11 @@ clean:
 $(foreach bdir,$(BUILD_DIR),$(eval $(call make-goal,$(bdir))))
 
 
-glue: mkgluedir download_glue_script download_glue
+glue: mkgluedir download_glue_script download_glue cola mrpc
 download_glue_script: glue/download_glue_data.py
 download_glue: glue/data
-process_cola: glue/data/CoLA/processed
+cola: glue/data/CoLA/processed
+mrpc: glue/data/MRPC/processed
 
 mkgluedir:
 	mkdir -p glue
@@ -55,7 +57,16 @@ glue/data: mkgluedir glue/download_glue_data.py
 
 glue/data/CoLA/processed:
 	mkdir -p glue/data/CoLA/processed
-	for f in glue/data/CoLA/*.tsv; do \
-	  cut -f2 -d'	' $$f | sed 's/\.0//g' > glue/data/CoLA/processed/$$(basename $$f .tsv)-labels; \
-	  cut -f4 -d'	' $$f | sed 's/\.0//g' > glue/data/CoLA/processed/$$(basename $$f .tsv)-texts; \
+	for f in glue/data/CoLA/{train,dev}.tsv; do \
+    fnout=$$(basename $$f .tsv); fnout=$${fnout/dev/val}; \
+	  cut -f2 -d'	' $$f | sed 's/\.0//g' > glue/data/CoLA/processed/$$fnout-acceptability; \
+	  cut -f4 -d'	' $$f | sed 's/\.0//g' > glue/data/CoLA/processed/$$fnout-texts; \
+	done
+
+glue/data/MRPC/processed:
+	mkdir -p glue/data/MRPC/processed
+	for f in glue/data/MRPC/{train,dev}.tsv; do \
+    fnout=$$(basename $$f .tsv); fnout=$${fnout/dev/val}; \
+    paste <(cut -f4 -d'	' $$f) <(cut -f5 -d'	' $$f)| sed 's/	/ [SEP] /g'| tail +2 > glue/data/MRPC/processed/$$fnout-texts; \
+	  cut -f1 -d'	' $$f | tail +2 > glue/data/MRPC/processed/$$fnout-paraphrase; \
 	done
