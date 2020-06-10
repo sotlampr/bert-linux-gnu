@@ -13,9 +13,11 @@ std::vector<icu::UnicodeString> BasicTokenizer::tokenize(icu::UnicodeString &s) 
   std::vector<icu::UnicodeString> splitToken, splitTokens;
 
   for (icu::UnicodeString& token:origTokens) {
-    if (doLowerCase) {
-      token = token.toLower();
+    if (token == "[SEP]") {
+      splitTokens.push_back(token);
+      continue;
     }
+    if (doLowerCase) token = token.toLower();
     token = stripAccents(token);
     splitToken = splitPunctuation(token);
     splitTokens.insert(splitTokens.end(), splitToken.begin(), splitToken.end());
