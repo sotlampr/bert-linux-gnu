@@ -1,7 +1,6 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include <stddef.h>
 #define PADDING_IDX 0
 #define LAYER_NORM_EPS 1e-12
 #define MAX_SEQUENCE_LENGTH 100
