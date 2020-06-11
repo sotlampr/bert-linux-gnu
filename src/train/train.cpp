@@ -15,6 +15,13 @@ if (value == -1) { \
   return 1; \
 }
 
+#define CHECK_VECTOR_ARG(name, var) \
+if (var.size() == 0) { \
+  printHelp(argv[0]); \
+  std::cout << "Error: `" << name "` required" << std::endl; \
+  return 1; \
+}
+
 #define CHECK_STR_ARG(name, value) \
 if (value == "") { \
   printHelp(argv[0]); \
@@ -145,17 +152,12 @@ int main(int argc, char *argv[]) {
     tasks[0].lossMultiplier = 1.0f;
   }
 
-  if (tasks.size() == 0) {
-    printHelp(argv[0]);
-    printf("Specify at least a task `-t`\n");
-    return 1;
-  }
 
-
-  CHECK_INT_ARG("--batch-size", batchSize);
-  CHECK_INT_ARG("--num-epochs", numEpochs);
   CHECK_STR_ARG("--model-dir", modelDir);
   CHECK_STR_ARG("--data-dir", dataDir);
+  CHECK_VECTOR_ARG("--task", tasks);
+  CHECK_INT_ARG("--batch-size", batchSize);
+  CHECK_INT_ARG("--num-epochs", numEpochs);
 
   for (auto& task : tasks) {
     detectTaskType(task);
