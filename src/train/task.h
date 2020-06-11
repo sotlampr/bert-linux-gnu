@@ -12,9 +12,9 @@ using LogitsToPredictionsFunc = std::function<torch::Tensor (torch::Tensor&)>;
 
 enum TaskType {
   Regression       = 1 << 0,
-  Binary           = 2 << 0,
-  TokenLevel       = 3 << 0,
-  NeedsTranslation = 4 << 0,
+  Binary           = 1 << 1,
+  TokenLevel       = 1 << 2,
+  NeedsTranslation = 1 << 3,
 };
 
 class Task {
