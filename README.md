@@ -35,15 +35,15 @@ and [libtorch](https://pytorch.org/cppdocs/) on a single GPU:
 
 - Compile:
 
-`make -j$(nproc) all`
+`$ make -j$(nproc) all`
 
 - Download and preprocess GLUE data:
 
-`make glue`
+`$ make glue`
 
 - Extract a model from `pytorch-transformers`:
 
-`./python_utils/extract_model.py bert-base-uncased`
+`$ ./python_utils/extract_model.py bert-base-uncased`
 
 - Run CoLA:
 
@@ -106,7 +106,7 @@ $ ./bert train \
 - Use spacy to extract POS tags for the CoLA dataset:
 
 ```
-for split in train val; do
+$ for split in train val; do
   ./bert tokenize \
     models/bert-base-uncased \
     glue/data/CoLA/processed/${split}-texts |
@@ -118,12 +118,12 @@ done
 - Convert the POS tags to ids:
 
 ```
-./python_utils/convert_to_ids.py \
+$ ./python_utils/convert_to_ids.py \
   cola-train-postags \
   glue/data/CoLA/processed/train-pos \
   -s cola-postags.vocab
 
-./python_utils/convert_to_ids.py \
+$ ./python_utils/convert_to_ids.py \
   cola-val-postags \
   glue/data/CoLA/processed/val-pos \
   -v cola-postags.vocab
