@@ -19,6 +19,7 @@ std::vector<Task> initTasks(std::vector<Task>& tasks,
   std::vector<torch::Tensor> weights = dataset.dataset().getClassWeights(tasks);
 
   for (size_t i = 0; i< tasks.size(); i++) {
+    bool tokenLevel = (TokenLevel & tasks[i].taskType) == TokenLevel;
     if ((Regression & tasks[i].taskType) == Regression) {
       throw std::runtime_error("Regression not implemented");
     } else if ((Binary & tasks[i].taskType) == Binary) {
@@ -26,7 +27,7 @@ std::vector<Task> initTasks(std::vector<Task>& tasks,
       out.push_back(
         Task(
           tasks[i],
-          BinaryClassifier(config),
+          BinaryClassifier(config, pos_weight.size(0), tokenLevel),
           torch::nn::BCEWithLogitsLoss(
             torch::nn::BCEWithLogitsLossOptions().pos_weight(pos_weight)
           ),
@@ -41,7 +42,7 @@ std::vector<Task> initTasks(std::vector<Task>& tasks,
       out.push_back(
         Task(
           tasks[i],
-          MulticlassClassifier(config, weight.size(0)),
+          MulticlassClassifier(config, weight.size(0), tokenLevel),
           torch::nn::CrossEntropyLoss(
             torch::nn::CrossEntropyLossOptions().weight(weight).ignore_index(CLASSIFICATION_IGNORE_INDEX)
           ),
@@ -62,7 +63,9 @@ void runTraining(const Config& config,
                  std::vector<Task>& tasks,
                  int batchSize,
                  int numWorkers,
-                 int numEpochs) {
+                 int numEpochs,
+                 int randomSeed) {
+  torch::manual_seed(randomSeed);
 
 	// Initialize models
   BertModel model(config);
@@ -103,6 +106,9 @@ void runTraining(const Config& config,
     for (const auto& metric : task.metrics) {
       std::cout << "," << task.name << "_train_" << metric.first;
     }
+  }
+
+  for (auto const& task : tasks){
     std::cout << "," <<  task.name << "_val_loss";
     for (const auto& metric : task.metrics) {
       std::cout << "," <<  task.name << "_val_" << metric.first;
@@ -137,22 +143,26 @@ void runTraining(const Config& config,
       float avg = sum / trainLosses[i].size();
       std::cout << "," << avg;
       for (const auto& metric : tasks[i].metrics) {
+        // std::cout << std::endl << "task: " << tasks[i].name << ", metric: " << metric.first << std::endl;
         float val = metric.second(trainLabels[i], trainPredictions[i]);
         std::cout << "," << val;
+        // std::cout << std::endl;
       }
     }
 
     trainLoop(model, tasks, valLoader, valLosses, valLabels, valPredictions);
 
     for (size_t i = 0; i < tasks.size(); i++){
-       float sum = 0.0f;
-       for (float x : valLosses[i] ) sum += x;
-       float avg = sum / valLosses[i].size();
-       std::cout << "," << avg;
-       for (const auto& metric : tasks[i].metrics) {
-         float val = metric.second(valLabels[i], valPredictions[i]);
-          std::cout << "," << val;
-       }
+      float sum = 0.0f;
+      for (float x : valLosses[i] ) sum += x;
+      float avg = sum / valLosses[i].size();
+      std::cout << "," << avg;
+      for (const auto& metric : tasks[i].metrics) {
+        // std::cout << std::endl << "task: " << tasks[i].name << ", metric: " << metric.first << std::endl;
+        float val = metric.second(valLabels[i], valPredictions[i]);
+        std::cout << "," << val;
+        // std::cout << std::endl;
+      }
     }
     std::cout << std::endl;
 	}

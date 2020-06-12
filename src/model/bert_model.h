@@ -5,7 +5,6 @@
 
 #include "bert_embeddings.h"
 #include "bert_encoder.h"
-#include "bert_pooler.h"
 #include "config.h"
 
 class BertModelImpl : public torch::nn::Module {
@@ -16,6 +15,5 @@ class BertModelImpl : public torch::nn::Module {
   private:
     BertEmbeddings embeddings{nullptr};
     BertEncoder encoder{nullptr};
-    BertPooler pooler{nullptr};
 }; TORCH_MODULE(BertModel);
 #endif

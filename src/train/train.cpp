@@ -64,7 +64,7 @@ Training options:\n\
 int main(int argc, char *argv[]) {
   int c, opt = 0;
   int batchSize, numEpochs; batchSize = numEpochs = -1;
-  int numWorkers = 0;
+  int numWorkers = 0, seed = 42;
   std::string modelDir, dataDir; modelDir = dataDir = "";
   std::vector<Task> tasks;
   Task lastTask;
@@ -78,6 +78,7 @@ int main(int argc, char *argv[]) {
 			{"task",                  required_argument, NULL,  't' },
 			{"metric",                required_argument, NULL,  'm' },
 			{"loss-multiplier",       required_argument, NULL,  'l' },
+			{"seed",                  no_argument,       NULL,  's' },
 			{"help",                  no_argument,       NULL,  'h' },
 			{NULL,                    0,                 NULL,   0  }
 	};
@@ -130,6 +131,8 @@ int main(int argc, char *argv[]) {
         }
         lastTask.lossMultiplier = std::stof(optarg);
         break;
+      case 's':
+        seed = std::stoi(optarg);
       case '?':
         printHelp(argv[0]);
         printf("Invalid argument -%c\n", optopt);
@@ -175,7 +178,7 @@ int main(int argc, char *argv[]) {
   }
 
   Config config;
-  runTraining(config, modelDir, dataDir, tasks, batchSize, numWorkers, numEpochs);
+  runTraining(config, modelDir, dataDir, tasks, batchSize, numWorkers, numEpochs, seed);
 
   return 0;
 }

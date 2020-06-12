@@ -9,9 +9,10 @@
 class BertPoolerImpl : public torch::nn::Module {
   public:
     BertPoolerImpl();
-    explicit BertPoolerImpl(Config const &config);
+    explicit BertPoolerImpl(Config const &config, bool useCLS);
     torch::Tensor forward(torch::Tensor hiddenStates);
   private:
     torch::nn::Linear dense{nullptr};
+    bool useCLS;
 }; TORCH_MODULE(BertPooler);
 #endif

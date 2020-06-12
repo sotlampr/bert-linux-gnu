@@ -17,9 +17,9 @@ def main(args):
     else:
         values = set([y for x in data for y in x])
         vocabulary = {x: i for i, x in enumerate(sorted(values))}
+        vocabulary["SPECIAL_TOKEN"] = -1
 
     data = [[vocabulary.get(y, args.unk_id) for y in x] for x in data]
-
 
     if args.save_vocabulary_fname:
         with open(args.save_vocabulary_fname, "w") as fp:
@@ -41,4 +41,6 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--save-vocabulary-fname")
     parser.add_argument("-d", "--delimiter", default=",")
     parser.add_argument("-u", "--unk-id", type=int, default=-1)
+    parser.add_argument("-I", "--classification-ignore-idx", type=int,
+                        default=1)
     main(parser.parse_args())

@@ -28,7 +28,15 @@ void innerLoop(BertModel &model,
       
       for (size_t i = 0; i < tasks.size(); i++) {
         taskLogits = tasks[i].classifier.forward(output);
-        taskLoss = tasks[i].criterion.forward(taskLogits, batchLabels[i]);
+        if (taskLogits.ndimension() == 3) {
+          // Token-level, flatten batch
+          taskLoss = tasks[i].criterion.forward(
+            taskLogits.view({-1, taskLogits.size(2)}),
+            batchLabels[i].view({-1})
+          );
+        } else {
+          taskLoss = tasks[i].criterion.forward(taskLogits, batchLabels[i]);
+        }
         loss += taskLoss * tasks[i].lossMultiplier;
         losses[i].push_back(taskLoss.item<float>());
         labels[i].index_put_({torch::indexing::Slice(startIdx, startIdx+batchLabels[i].size(0))}, batchLabels[i]);

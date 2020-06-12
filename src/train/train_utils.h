@@ -13,7 +13,8 @@ void runTraining(const Config &config,
                  std::vector<Task> &tasks,
                  int batchSize,
                  int numWorkers,
-                 int numEpochs);
+                 int numEpochs,
+                 int randomSeed);
 
 std::vector<Task> initTasks(std::vector<Task>& tasks,
                             TextDatasetType& dataset,

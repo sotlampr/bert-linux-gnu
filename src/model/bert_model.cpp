@@ -3,11 +3,9 @@
 BertModelImpl::BertModelImpl() {}
 BertModelImpl::BertModelImpl(Config const &config)
   : embeddings (BertEmbeddings(config)),
-    encoder (BertEncoder(config)),
-    pooler (BertPooler(config)) {
+    encoder (BertEncoder(config)) {
   register_module("embeddings", embeddings);
   register_module("encoder", encoder);
-  register_module("pooler", pooler);
 }
 
 torch::Tensor BertModelImpl::forward(torch::Tensor inputIds) {
@@ -21,7 +19,6 @@ torch::Tensor BertModelImpl::forward(torch::Tensor inputIds) {
   // std::cout << "embeddingOutput: " << embeddingOutput.sizes() << std::endl;
   torch::Tensor encoderOutputs = encoder(embeddingOutput, extendedAttentionMask);
   // std::cout << "encoderOutputs: " << encoderOutputs.sizes() << std::endl;
-  torch::Tensor pooledOutput = pooler(encoderOutputs);
   // std::cout << "pooledOutput: " << pooledOutput.sizes() << std::endl;
-  return pooledOutput;
+  return encoderOutputs;
 }

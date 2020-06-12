@@ -11,6 +11,61 @@
 #include "tokenize.h"
 
 
+template <typename T>
+torch::Tensor idsToTensor(const std::vector<std::vector<T>>& ids,
+                          T& sosId, T& eosId, T& paddingIdx) {
+  torch::ScalarType dtype;
+  if (std::is_same<T, long>::value) {
+    dtype = torch::kInt64;
+  } else {
+    dtype = torch::kFloat;
+  }
+
+  torch::Tensor idsTensor = torch::full({(long)ids.size()* MAX_SEQUENCE_LENGTH},
+                                         paddingIdx, torch::TensorOptions().dtype(dtype));
+
+  // Get a pointer to tensor and copy values sequentially
+  T* data = idsTensor.data_ptr<T>();
+  for (int i = 0; i < ids.size(); i++) {
+      *data++ = sosId;
+      int elementsInserted = 1;
+    for (int j = 0; j < ids[i].size(); j++) {
+      if (j >= MAX_SEQUENCE_LENGTH - 2) {
+        std::cerr << "WARNING: truncating sequence to " << MAX_SEQUENCE_LENGTH << std::endl;
+        break;
+      }
+      *data++ = ids[i][j];
+      elementsInserted++;
+    }
+      *data++ = eosId;
+      elementsInserted++;
+
+    // Forward pointer to next row
+    for (int k = elementsInserted; k < MAX_SEQUENCE_LENGTH; k++) data++;
+  }
+  idsTensor = idsTensor.view({(long)ids.size(), MAX_SEQUENCE_LENGTH});
+  return idsTensor.view({(long)ids.size(), MAX_SEQUENCE_LENGTH});
+}
+
+template <typename T>
+torch::Tensor idsToTensor(const std::vector<T>& ids) {
+  torch::ScalarType dtype;
+  if (std::is_same<T, long>::value) {
+    dtype = torch::kInt64;
+  } else {
+    dtype = torch::kFloat;
+  }
+
+	torch::Tensor idsTensor = torch::empty(
+			ids.size(), torch::TensorOptions().dtype(dtype));
+  T* data = idsTensor.data_ptr<T>();
+  for (const auto& v : ids) {
+      *data++ = v;
+  }
+  return idsTensor.view({(long)ids.size()});
+}
+
+
 torch::Tensor readTextsToTensor(const std::string& modelDir,
                                 const std::vector<Task>& tasks,
                                 const std::string& subset) {
@@ -32,31 +87,10 @@ torch::Tensor readTextsToTensor(const std::string& modelDir,
   }
 
   // Convert std::vector ids to torch::Tensor
-  long sosId = tokenizer->tokenToId("[CLS]"), eosId = tokenizer->tokenToId("[SEP]");
-
-  torch::Tensor textsTensor = torch::full({(long)textsIds.size()* MAX_SEQUENCE_LENGTH},
-                                          PADDING_IDX, torch::TensorOptions().dtype(torch::kInt64));
-
-  // Get a pointer to tensor and copy values sequentially
-  long* data = textsTensor.data_ptr<long>();
-  for (int i = 0; i < textsIds.size(); i++) {
-      *data++ = sosId;
-      int elementsInserted = 1;
-    for (int j = 0; j < textsIds[i].size(); j++) {
-      if (j >= MAX_SEQUENCE_LENGTH - 2) {
-        std::cerr << "WARNING: truncating sequence to " << MAX_SEQUENCE_LENGTH << std::endl;
-        break;
-      }
-      *data++ = textsIds[i][j];
-      elementsInserted++;
-    }
-      *data++ = eosId;
-      elementsInserted++;
-
-    // Forward pointer to next row
-    for (int k = elementsInserted; k < MAX_SEQUENCE_LENGTH; k++) data++;
-  }
-  return textsTensor.view({(long)textsIds.size(), MAX_SEQUENCE_LENGTH});
+  long sosId = tokenizer->tokenToId("[CLS]"),
+       eosId = tokenizer->tokenToId("[SEP]"),
+       paddingIdx = PADDING_IDX;
+  return idsToTensor(textsIds, sosId, eosId, paddingIdx);
 }
 
 
@@ -67,36 +101,35 @@ std::vector<torch::Tensor> readLabelsToTensor(const std::vector<Task>& tasks,
 
   for (const auto& task : tasks) {
     if ((TokenLevel & task.taskType) == TokenLevel) {
-      throw std::runtime_error("Token-level classification not implemented");
-    } else {
-      if ((Binary & task.taskType) == Binary) {
-        // Binary classification: labels<float>
-        std::vector<float> labels = readLabels<float>(baseFname + task.name);
-
-        // Convert std::vector to torch::Tensor
-        torch::Tensor labelsTensor = torch::empty(labels.size(),
-                                                  torch::TensorOptions().dtype(torch::kFloat));
-        float* data = labelsTensor.data_ptr<float>();
-        for (const auto& v : labels) {
-            *data++ = v;
-        }
-        labelsVector.push_back(labelsTensor.view({(long)labels.size()}));
-      } else {
-        // Multiclass classification: labels<long>
-        std::vector<long> labels = readLabels<long>(baseFname + task.name);
-        torch::Tensor labelsTensor = torch::empty(labels.size(),
-                                                  torch::TensorOptions().dtype(torch::kInt64));
-        long* data = labelsTensor.data_ptr<long>();
-        for (const auto& v : labels) {
-            *data++ = v;
-        }
-        labelsVector.push_back(labelsTensor.view({(long)labels.size()}));
-      }
-    }
-  }
+			if ((Binary & task.taskType) == Binary
+          || (Regression & task.taskType) == Regression) {
+				float sosId = CLASSIFICATION_IGNORE_INDEX,
+					    eosId = CLASSIFICATION_IGNORE_INDEX,
+					    paddingIdx = CLASSIFICATION_IGNORE_INDEX;
+				std::vector<std::vector<float>> labels =
+					 	readLabelsTokenLevel<float>(baseFname + task.name);
+				labelsVector.push_back(idsToTensor(labels, sosId, eosId, paddingIdx));
+			} else {
+				long sosId = CLASSIFICATION_IGNORE_INDEX,
+						 eosId = CLASSIFICATION_IGNORE_INDEX,
+						 paddingIdx = CLASSIFICATION_IGNORE_INDEX;
+				std::vector<std::vector<long>> labels =
+						readLabelsTokenLevel<long>(baseFname + task.name);
+				labelsVector.push_back(idsToTensor(labels, sosId, eosId, paddingIdx));
+			}
+		} else {
+			if ((Binary & task.taskType) == Binary
+          || (Regression & task.taskType) == Regression) {
+				std::vector<float> labels = readLabels<float>(baseFname + task.name);
+				labelsVector.push_back(idsToTensor(labels));
+			} else {
+				std::vector<long> labels = readLabels<long>(baseFname + task.name);
+				labelsVector.push_back(idsToTensor(labels));
+			}
+		}
+	}
   return labelsVector;
 }
-
 
 template <typename T> T stringToNumber(const std::string& s) {}
 template<> long stringToNumber(const std::string& s) { return std::stol(s); }
@@ -114,6 +147,25 @@ std::vector<T> readLabels(std::string fname) {
     out.push_back(stringToNumber<T>(line));
   }
   return out;
+}
+template <typename T>
+std::vector<std::vector<T>> readLabelsTokenLevel(std::string fname) {
+  std::ifstream file(fname);
+  if (!file.is_open()) {
+    throw std::runtime_error(fname + " not found!");
+  }
+  std::string line;
+	std::vector<std::vector<T>> data;
+  while (std::getline(file, line)) {
+		std::string value;
+		std::vector<T> lineData;
+		std::istringstream iss(line);
+		while(std::getline(iss, value, DELIMITER)) {
+			lineData.push_back(stringToNumber<T>(value));
+		}
+		data.push_back(lineData);
+  }
+  return data;
 }
 
 

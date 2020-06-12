@@ -96,7 +96,8 @@ void loadState(const std::string &path, torch::nn::Module& model) {
       #ifdef DEBUG
       std::cout << "\tNot found" << std::endl;
       #endif
-      throw std::runtime_error("Parameter " + paramName + " not in model");
+      std::cerr << "WARNING: Parameter " << paramName << " not in model" << std::endl;
+      // throw std::runtime_error("Parameter " + paramName + " not in model");
     }
   }
 }

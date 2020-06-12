@@ -6,24 +6,31 @@
 #include <torch/types.h>
 
 #include "config.h"
+#include "bert_pooler.h"
 
 class BinaryClassifierImpl : public torch::nn::Module {
   public:
     BinaryClassifierImpl();
-    explicit BinaryClassifierImpl(Config const &config, int numLabels = 1);
+    explicit BinaryClassifierImpl(Config const &config,
+                                  int numLabels = 1,
+                                  bool tokenLevel = false);
     torch::Tensor forward(torch::Tensor hidden);
   private:
     torch::nn::Linear dense{nullptr};
     torch::nn::Dropout dropout{nullptr};
+    BertPooler pooler{nullptr};
 }; TORCH_MODULE(BinaryClassifier);
 
 class MulticlassClassifierImpl : public torch::nn::Module {
   public:
     MulticlassClassifierImpl();
-    explicit MulticlassClassifierImpl(Config const &config, int numClasses);
+    explicit MulticlassClassifierImpl(Config const &config,
+                                      int numClasses,
+                                      bool tokenLevel = false);
     torch::Tensor forward(torch::Tensor hidden);
   private:
     torch::nn::Linear dense{nullptr};
     torch::nn::Dropout dropout{nullptr};
+    BertPooler pooler{nullptr};
 }; TORCH_MODULE(MulticlassClassifier);
 #endif

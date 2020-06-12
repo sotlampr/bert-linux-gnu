@@ -1,5 +1,6 @@
 #include "text_dataset.h"
 
+#include "config.h"
 #include "data_utils.h"
 
 
@@ -33,7 +34,13 @@ std::vector<torch::Tensor> TextDataset::getClassWeights(const std::vector<Task>&
   std::vector<torch::Tensor> out;
   for (size_t i = 0; i < tasks.size(); i++) {
     if ((TokenLevel & tasks[i].taskType) == TokenLevel) {
-      throw std::runtime_error("Token-level classification not implemented");
+			torch::Tensor numClasses = (labels[i].max() + 1).to(torch::kFloat);
+			torch::Tensor weights = torch::zeros(numClasses.item<long>()).to(torch::kFloat);;
+			long numSamples = labels[i].size(0) * labels[i].size(1) - (labels[i] == CLASSIFICATION_IGNORE_INDEX).sum().item<long>();
+			for (long j = 0; j < numClasses.item<long>(); j++) {
+				weights[j] = numSamples / (numClasses * (labels[i] == j).sum());
+			}
+			out.push_back(weights.cuda());
     } else {
       if ((Binary & tasks[i].taskType) == Binary) {
         if (labels[i].ndimension() != 1) {
@@ -41,7 +48,7 @@ std::vector<torch::Tensor> TextDataset::getClassWeights(const std::vector<Task>&
         } else {
           torch::Tensor pos = (labels[i] == 1).sum().to(torch::kFloat);
           torch::Tensor neg = (labels[i] == 0).sum().to(torch::kFloat);
-          out.push_back((neg/pos).cuda());
+          out.push_back((neg/pos).cuda().unsqueeze(0));
         }
       } else {
         if (labels[i].ndimension() != 1) {
