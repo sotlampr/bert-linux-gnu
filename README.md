@@ -196,6 +196,8 @@ $ ./bert train \
 > 10,0.85049,0.896082,0.842139
 ```
 
+Whoa, that was nice!!
+
 # Implemented
 
 - BERT tokenizer
