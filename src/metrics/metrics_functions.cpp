@@ -3,6 +3,7 @@
 #include <cmath>
 #include <limits>
 
+#include "config.h"
 #include "metrics_utils.h"
 
 float matthewsCorrelationCoefficient(torch::Tensor &labels, torch::Tensor &predictions) {
@@ -25,7 +26,13 @@ float matthewsCorrelationCoefficient(torch::Tensor &labels, torch::Tensor &predi
 
 float accuracy(torch::Tensor &labels, torch::Tensor &predictions) {
   long numerator = (labels == predictions).sum().item<long>();
-  long denominator = labels.size(0);
+  long numIgnored = (labels == CLASSIFICATION_IGNORE_INDEX).sum().item<long>();
+  long denominator;
+  if (labels.ndimension() > 1) {
+    denominator = labels.size(0) * labels.size(1) - numIgnored;
+  } else {
+    denominator = labels.size(0) - numIgnored;
+  }
   return static_cast<float>(numerator) / static_cast<float>(denominator);
 }
 
