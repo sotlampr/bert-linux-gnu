@@ -4,14 +4,33 @@ import array
 import os
 import re
 import shutil
+import struct
 
 import torch
-from pytorch_transformers import BertModel, BertTokenizer
+from pytorch_transformers import BertConfig, BertModel, BertTokenizer
 from pytorch_transformers.tokenization_bert \
     import PRETRAINED_INIT_CONFIGURATION
 
 
+def save_struct(config, model_dir):
+    with open(f"{model_dir}/config", "wb") as fp:
+        fp.write(
+            struct.pack("@iffiiiiii",
+                config.hidden_size,
+                config.attention_probs_dropout_prob,
+                config.hidden_dropout_prob,
+                config.intermediate_size,
+                config.max_position_embeddings,
+                config.num_attention_heads,
+                config.num_hidden_layers,
+                config.type_vocab_size,
+                config.vocab_size
+            )
+        )
+
+
 def main(args):
+    config = BertConfig.from_pretrained(args.model_name)
     tokenizer = BertTokenizer.from_pretrained(args.model_name)
     vocab_file = tokenizer \
         .pretrained_init_configuration["bert-base-uncased"]["vocab_file"]
@@ -34,6 +53,8 @@ def main(args):
                 values.tofile(fp)
         else:
             print(f"error for {k}")
+
+    save_struct(config, model_dir)
     print(f"Extracted `{args.model_name}` to `{model_dir}`")
     return 0
 

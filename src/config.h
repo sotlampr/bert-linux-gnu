@@ -8,16 +8,15 @@
 #define SNIFF_LINES 100
 #define CLASSIFICATION_IGNORE_INDEX -1
 
-class Config {
-  public:
-    int hiddenSize = 768;;
-		float attentionDropoutProb = 0.1f;
-		float hiddenDropoutProb = 0.1f;
-		int intermediateSize = 3072;
-    int maxPositionEmbeddings = 512;
-		int numAttentionHeads = 12;
-		int numHiddenLayers = 12;
-		int typeVocabSize = 2;
-		int vocabSize = 30522;
+struct Config {
+    int hiddenSize;;
+		float attentionDropoutProb;
+		float hiddenDropoutProb;
+		int intermediateSize;
+    int maxPositionEmbeddings;
+		int numAttentionHeads;
+		int numHiddenLayers;
+		int typeVocabSize;
+		int vocabSize;
 };
 #endif

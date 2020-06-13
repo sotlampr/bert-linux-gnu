@@ -7,16 +7,17 @@
 #include "data.h"
 #include "task.h"
 
-void runTraining(const Config &config,
-                 const std::string &modelDir,
+void runTraining(const std::string &modelDir,
                  const std::string &dataDir,
                  std::vector<Task> &tasks,
                  int batchSize,
                  int numWorkers,
                  int numEpochs,
+                 const std::string& saveModel,
                  int randomSeed);
 
 std::vector<Task> initTasks(std::vector<Task>& tasks,
                             TextDatasetType& dataset,
-                            const Config& config);
+                            const Config& config,
+                            const std::string& saveFname);
 #endif

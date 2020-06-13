@@ -208,8 +208,8 @@ Whoa, that was nice!!
 # Will implement
 
 - SentencePiece tokenizer (for models trained with SP-tokenized texts)
-- Token-level classification
-- Save model
+- ~~Token-level classification~~
+- ~~Save model~~
 - Test model
 - Multi-class metrics
 

@@ -3,7 +3,6 @@
 #include <getopt.h>
 #include <iostream>
 
-#include "config.h"
 #include "data.h"
 #include "task.h"
 #include "train_utils.h"
@@ -65,7 +64,7 @@ int main(int argc, char *argv[]) {
   int c, opt = 0;
   int batchSize, numEpochs; batchSize = numEpochs = -1;
   int numWorkers = 0, seed = 42;
-  std::string modelDir, dataDir; modelDir = dataDir = "";
+  std::string modelDir, dataDir, saveModel; modelDir = dataDir = saveModel = "";
   std::vector<Task> tasks;
   Task lastTask;
 
@@ -74,6 +73,7 @@ int main(int argc, char *argv[]) {
 			{"num-workers",           required_argument, NULL,  'w' },
 			{"num-epochs",            required_argument, NULL,  'e' },
 			{"model-dir",             required_argument, NULL,  'M' },
+			{"save-model",            required_argument, NULL,  'S' },
 			{"data-dir",              required_argument, NULL,  'D' },
 			{"task",                  required_argument, NULL,  't' },
 			{"metric",                required_argument, NULL,  'm' },
@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
 			{NULL,                    0,                 NULL,   0  }
 	};
 
-	while ((c = getopt_long(argc, argv, "-:b:e:w:M:D:t:m:l:s:h", options, &opt)) != -1) {
+	while ((c = getopt_long(argc, argv, "-:b:e:w:M:S:D:t:m:l:s:h", options, &opt)) != -1) {
     switch (c) {
       case 1:
         printHelp(argv[0]);
@@ -100,6 +100,9 @@ int main(int argc, char *argv[]) {
         break;
       case 'M':
         modelDir = optarg;
+        break;
+      case 'S':
+        saveModel = optarg;
         break;
       case 'D':
         dataDir = optarg;
@@ -165,22 +168,21 @@ int main(int argc, char *argv[]) {
 
   for (auto& task : tasks) {
     detectTaskType(task);
-    std::cout << "# "
+    std::cerr << "# "
               << "task=" << task.name
               << " loss_multiplier=" << task.lossMultiplier
               << " base_dir=" << task.baseDir
               << " seed=" << seed;
     for (const auto& metric : task.metrics) {
-      std::cout << " metric=" << metric.first;
+      std::cerr << " metric=" << metric.first;
     }
-    std::cout << " regression?=" << ((Regression & task.taskType) == Regression)
+    std::cerr << " regression?=" << ((Regression & task.taskType) == Regression)
               << " token_level?=" << ((TokenLevel & task.taskType) == TokenLevel)
               << " binary?=" << ((Binary & task.taskType) == Binary)
               << std::endl;
   }
 
-  Config config;
-  runTraining(config, modelDir, dataDir, tasks, batchSize, numWorkers, numEpochs, seed);
+  runTraining(modelDir, dataDir, tasks, batchSize, numWorkers, numEpochs, saveModel, seed);
 
  return 0;
 }

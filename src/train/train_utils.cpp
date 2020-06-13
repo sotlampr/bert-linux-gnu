@@ -6,15 +6,19 @@
 #include <iomanip>
 #include <iostream>
 #include <stdexcept>
+#include <limits>
+#include <fstream>
 
 #include "model.h"
 #include "state.h"
 #include "metrics.h"
 #include "train_loop.h"
 
+
 std::vector<Task> initTasks(std::vector<Task>& tasks,
                             TextDatasetType& dataset,
-                            const Config& config) {
+                            const Config& config,
+                            const std::string& saveFname) {
   std::vector<Task> out;
   std::vector<torch::Tensor> weights = dataset.dataset().getClassWeights(tasks);
 
@@ -24,10 +28,11 @@ std::vector<Task> initTasks(std::vector<Task>& tasks,
       throw std::runtime_error("Regression not implemented");
     } else if ((Binary & tasks[i].taskType) == Binary) {
       torch::Tensor pos_weight = weights[i];
+      BinaryClassifierOptions options{config, static_cast<int>(pos_weight.size(0)), tokenLevel};
+      if (!saveFname.empty()) saveStruct(options, saveFname + "-" + tasks[i].name + "-binary.config");
       out.push_back(
         Task(
-          tasks[i],
-          BinaryClassifier(config, pos_weight.size(0), tokenLevel),
+          tasks[i], BinaryClassifier(options),
           torch::nn::BCEWithLogitsLoss(
             torch::nn::BCEWithLogitsLossOptions().pos_weight(pos_weight)
           ),
@@ -39,10 +44,11 @@ std::vector<Task> initTasks(std::vector<Task>& tasks,
       out.back().classifier.ptr()->to(torch::kCUDA);
     } else {
       torch::Tensor weight = weights[i];
+      MutliclassClassifierOptions options{config, static_cast<int>(weight.size(0)), tokenLevel};
+      if (!saveFname.empty()) saveStruct(options, saveFname + "-" + tasks[i].name + "-multiclass.config");
       out.push_back(
         Task(
-          tasks[i],
-          MulticlassClassifier(config, weight.size(0), tokenLevel),
+          tasks[i], MulticlassClassifier(options),
           torch::nn::CrossEntropyLoss(
             torch::nn::CrossEntropyLossOptions().weight(weight).ignore_index(CLASSIFICATION_IGNORE_INDEX)
           ),
@@ -57,47 +63,83 @@ std::vector<Task> initTasks(std::vector<Task>& tasks,
   return out;
 }
 
-void runTraining(const Config& config,
-                 const std::string& modelDir,
+void saveModel(BertModel &model,
+               std::vector<Task> &tasks,
+               const std::string& baseFname,
+               float& currentMetric,
+               float& bestMetric) {
+  if (currentMetric > bestMetric) {
+    std::cerr << "Model improved, saving..." << std::endl;
+    bestMetric = currentMetric;
+    torch::save(model, baseFname + "-bert.pt");
+    for (const auto& task : tasks) {
+      std::string moduleName = task.classifier.ptr()->name();
+      std::string moduleId;
+      if (moduleName == "MulticlassClassifierImpl") {
+        moduleId = "multiclass";
+      } else if (moduleName == "BinaryClassifierImpl") {
+        moduleId = "binary";
+      }
+      torch::save(task.classifier.ptr(), baseFname + "-" + task.name + "-" + moduleId + ".pt");
+    }
+  }
+}
+
+
+void runTraining(const std::string& modelDir,
                  const std::string& dataDir,
                  std::vector<Task>& tasks,
                  int batchSize,
                  int numWorkers,
                  int numEpochs,
+                 const std::string& saveFname,
                  int randomSeed) {
   torch::manual_seed(randomSeed);
 
-	// Initialize models
+  // Read config
+  Config config;
+  readStruct(config, modelDir + "/config");
+
+  // Save Config if saveFname
+  if (!saveFname.empty()) {
+    saveStruct(config, saveFname + "-bert.config");
+  }
+
+  // Initialize models
   BertModel model(config);
   loadState(modelDir, *model);
-	model->to(torch::kCUDA);
+  model->to(torch::kCUDA);
 
-	//Initialize dataset
+  //Initialize dataset
   TextDatasetType trainDataset = getDataset(modelDir, tasks, "train");
   TextDatasetType valDataset = getDataset(modelDir, tasks, "val");
 
-	// Get label tensor sizes
+  // Get label tensor sizes
   std::vector<torch::IntArrayRef> trainLabelSizes = trainDataset.dataset().getLabelSizes();
   std::vector<torch::IntArrayRef> valLabelSizes = valDataset.dataset().getLabelSizes();
 
-	// Initialize data loaders
-	TextDataLoaderType trainLoader = torch::data::make_data_loader(
+  // Initialize data loaders
+  TextDataLoaderType trainLoader = torch::data::make_data_loader(
     trainDataset,
     torch::data::DataLoaderOptions().batch_size(batchSize).workers(numWorkers));
-	TextDataLoaderType valLoader = torch::data::make_data_loader(
+  TextDataLoaderType valLoader = torch::data::make_data_loader(
       valDataset,
       torch::data::DataLoaderOptions().batch_size(batchSize).workers(numWorkers));
 
   // Initialize criteria
-  tasks = initTasks(tasks, trainDataset, config);
+  tasks = initTasks(tasks, trainDataset, config, saveFname);
 
-	// Initialize optimizer
+  // Initialize optimizer
   std::vector<torch::Tensor> parameters = model->parameters(true);
   for (auto& task : tasks) {
     std::vector<torch::Tensor> classifierParameters = task.classifier.ptr()->parameters(true);
     parameters.insert(parameters.begin(), classifierParameters.begin(), classifierParameters.end());
   }
   torch::optim::Adam optimizer(parameters, torch::optim::AdamOptions(1e-5));
+
+
+  float bestMetric = -std::numeric_limits<float>::infinity();
+  float currentMetric;
 
   // Print headers
   std::cout << "epoch";
@@ -165,5 +207,10 @@ void runTraining(const Config& config,
       }
     }
     std::cout << std::endl;
-	}
+    // Save model if applicable
+    if (!saveFname.empty()) {
+      currentMetric = tasks[0].metrics[0].second(valLabels[0], valPredictions[0]);
+      saveModel(model, tasks, saveFname, currentMetric, bestMetric);
+    }
+  }
 }

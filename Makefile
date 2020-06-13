@@ -6,7 +6,7 @@ LDFLAGS := -ltorch -lc10 -lc10_cuda -ltorch_cpu -lcuda -lpthread -licuuc -licuio
 CXXFLAGS := -march=native -O0 -pipe -std=c++14 -ggdb3 -g
 CPPFLAGS := -D_GLIBCXX_USE_CXX11_ABI=0 # -DDEBUG
 
-MODULES := data metrics model state tokenize train
+MODULES := data metrics model state tokenize train test
 SRC_DIR := $(addprefix src/,$(MODULES))
 BUILD_DIR := $(addprefix build/,$(MODULES))
 SOURCES := $(foreach sdir,$(SRC_DIR),$(wildcard $(sdir)/*.cpp))

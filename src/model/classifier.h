@@ -8,13 +8,24 @@
 #include "config.h"
 #include "bert_pooler.h"
 
+struct BinaryClassifierOptions {
+  Config config;
+  int numLabels;
+  bool tokenLevel;
+};
+
+struct MutliclassClassifierOptions {
+  Config config;
+  int numClasses;
+  bool tokenLevel;
+};
+
 class BinaryClassifierImpl : public torch::nn::Module {
   public:
     BinaryClassifierImpl();
-    explicit BinaryClassifierImpl(Config const &config,
-                                  int numLabels = 1,
-                                  bool tokenLevel = false);
+    explicit BinaryClassifierImpl(const BinaryClassifierOptions& options);
     torch::Tensor forward(torch::Tensor hidden);
+    BinaryClassifierOptions options;
   private:
     torch::nn::Linear dense{nullptr};
     torch::nn::Dropout dropout{nullptr};
@@ -24,10 +35,9 @@ class BinaryClassifierImpl : public torch::nn::Module {
 class MulticlassClassifierImpl : public torch::nn::Module {
   public:
     MulticlassClassifierImpl();
-    explicit MulticlassClassifierImpl(Config const &config,
-                                      int numClasses,
-                                      bool tokenLevel = false);
+    explicit MulticlassClassifierImpl(const MutliclassClassifierOptions& options);
     torch::Tensor forward(torch::Tensor hidden);
+    MutliclassClassifierOptions options;
   private:
     torch::nn::Linear dense{nullptr};
     torch::nn::Dropout dropout{nullptr};

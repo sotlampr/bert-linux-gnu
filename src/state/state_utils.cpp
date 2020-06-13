@@ -11,11 +11,10 @@
 
 #include "model.h"
 
-std::vector<std::string> getParameterFiles (std::string path) {
+std::vector<std::string> getGlobFiles (const std::string& pattern) {
     glob_t globbuf;
     std::vector<std::string> out;
-    path += "/*.dat";
-    int err = glob(path.c_str(), 0, NULL, &globbuf);
+    int err = glob(pattern.c_str(), 0, NULL, &globbuf);
     if(err == 0)
     {
         for (size_t i = 0; i < globbuf.gl_pathc; i++) {
@@ -70,7 +69,7 @@ void loadState(const std::string &path, torch::nn::Module& model) {
   std::cout << "Loading state from `" << path << "`" << std::endl;
   #endif
 
-  for (auto const& fname : getParameterFiles(path)) {
+  for (auto const& fname : getGlobFiles(path + "/*.dat")) {
     std::string paramName = getParameterName(fname);
     std::vector<int64_t> paramSize = getParameterSize(fname);
     int numValues = 1;
@@ -101,3 +100,24 @@ void loadState(const std::string &path, torch::nn::Module& model) {
     }
   }
 }
+
+template <typename T>
+void saveStruct(const T& obj, const std::string& fname) {
+  std::ofstream fs(fname, std::ios::binary);
+  fs.write((char*)&obj, sizeof(T));
+  fs.close();
+}
+template <typename T>
+void readStruct(T& obj, const std::string& fname) {
+  std::ifstream fs(fname, std::ios::binary);
+  fs.read((char*)&obj, sizeof(T));
+  fs.close();
+}
+
+// Explicit instatiations
+template void saveStruct(const Config&, const std::string&);
+template void saveStruct(const BinaryClassifierOptions&, const std::string&);
+template void saveStruct(const MutliclassClassifierOptions&, const std::string&);
+template void readStruct(Config&, const std::string&);
+template void readStruct(BinaryClassifierOptions&, const std::string&);
+template void readStruct(MutliclassClassifierOptions&, const std::string&);

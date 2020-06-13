@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 
+#include "test.h"
 #include "train.h"
 #include "tokenize.h"
 
@@ -28,6 +29,8 @@ int main(int argc, char* argv[]) {
     return train::main(argc-1,  ++argv);
   } else if (std::string(argv[1]) == "tokenize") {
     return tokenize::main(argc-1,  ++argv);
+  } else if (std::string(argv[1]) == "test") {
+    return test::main(argc-1,  ++argv);
   } else {
     std::cout << "Invalid command `" << argv[1] << "`" << std::endl;
     return 1;
