@@ -78,12 +78,12 @@ int main(int argc, char *argv[]) {
 			{"task",                  required_argument, NULL,  't' },
 			{"metric",                required_argument, NULL,  'm' },
 			{"loss-multiplier",       required_argument, NULL,  'l' },
-			{"seed",                  no_argument,       NULL,  's' },
+			{"seed",                  required_argument, NULL,  's' },
 			{"help",                  no_argument,       NULL,  'h' },
 			{NULL,                    0,                 NULL,   0  }
 	};
 
-	while ((c = getopt_long(argc, argv, "-:b:e:w:M:D:t:m:l:h", options, &opt)) != -1) {
+	while ((c = getopt_long(argc, argv, "-:b:e:w:M:D:t:m:l:s:h", options, &opt)) != -1) {
     switch (c) {
       case 1:
         printHelp(argv[0]);
@@ -133,6 +133,7 @@ int main(int argc, char *argv[]) {
         break;
       case 's':
         seed = std::stoi(optarg);
+        break;
       case '?':
         printHelp(argv[0]);
         printf("Invalid argument -%c\n", optopt);
@@ -167,7 +168,8 @@ int main(int argc, char *argv[]) {
     std::cout << "# "
               << "task=" << task.name
               << " loss_multiplier=" << task.lossMultiplier
-              << " base_dir=" << task.baseDir;
+              << " base_dir=" << task.baseDir
+              << " seed=" << seed;
     for (const auto& metric : task.metrics) {
       std::cout << " metric=" << metric.first;
     }
@@ -180,6 +182,6 @@ int main(int argc, char *argv[]) {
   Config config;
   runTraining(config, modelDir, dataDir, tasks, batchSize, numWorkers, numEpochs, seed);
 
-  return 0;
+ return 0;
 }
 }
