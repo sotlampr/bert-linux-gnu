@@ -4,6 +4,8 @@
 #include <vector>
 #include <stdexcept>
 
+#include <torch/nn/utils.h>
+
 void innerLoop(BertModel &model,
                std::vector<Task> &tasks,
                TextDataLoaderType &loader,
@@ -72,6 +74,12 @@ void trainLoop(BertModel &model,
         task.classifier.ptr()->zero_grad();
       }
       loss.backward();
+      // Gradient clipping
+      for (auto& param_group : optimizer.param_groups()) {
+        for (auto& param : param_group.params()) {
+          torch::nn::utils::clip_grad_norm_(param, MAX_GRADIENT_NORM);
+        }
+      }
       optimizer.step();
   };
   innerLoop(model, tasks, loader, losses, labels, predictions, callback);
