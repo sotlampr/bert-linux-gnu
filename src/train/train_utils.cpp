@@ -133,7 +133,6 @@ void runTraining(const std::string& modelDir,
   // Initialize optimizer
   std::vector<torch::Tensor> dParams;
   std::vector<torch::Tensor> ndParams;
-  std::cout << "Gathering bertModel's parameters..." << std::endl;
   for (const auto& param : model->named_parameters()) {
     const auto& name = param.key();
     if ((name.find("bias") != std::string::npos)
