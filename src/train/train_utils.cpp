@@ -10,6 +10,7 @@
 #include <fstream>
 
 #include "model.h"
+#include "optim.h"
 #include "state.h"
 #include "metrics.h"
 #include "train_loop.h"
@@ -130,13 +131,47 @@ void runTraining(const std::string& modelDir,
   tasks = initTasks(tasks, trainDataset, config, saveFname);
 
   // Initialize optimizer
-  std::vector<torch::Tensor> parameters = model->parameters(true);
-  for (auto& task : tasks) {
-    std::vector<torch::Tensor> classifierParameters = task.classifier.ptr()->parameters(true);
-    parameters.insert(parameters.begin(), classifierParameters.begin(), classifierParameters.end());
+  std::vector<torch::Tensor> dParams;
+  std::vector<torch::Tensor> ndParams;
+  std::cout << "Gathering bertModel's parameters..." << std::endl;
+  for (const auto& param : model->named_parameters()) {
+    const auto& name = param.key();
+    if ((name.find("bias") != std::string::npos)
+        || (name.find("layerNorm.weight") != std::string::npos)) {
+      ndParams.push_back(param.value());
+    } else {
+      dParams.push_back(param.value());
+    }
   }
-  torch::optim::Adam optimizer(parameters, torch::optim::AdamOptions(1e-5));
 
+  for (auto& task : tasks) {
+    for (const auto& param : task.classifier.ptr()->named_parameters()) {
+      const auto& name = param.key();
+      if ((name.find("bias") != std::string::npos)
+          || (name.find("layerNorm.weight") != std::string::npos)) {
+        ndParams.push_back(param.value());
+      } else {
+        dParams.push_back(param.value());
+      }
+    };
+  }
+
+  std::vector<torch::optim::OptimizerParamGroup> param_groups {
+    torch::optim::OptimizerParamGroup(
+      ndParams,
+      std::make_unique<torch::optim::AdamWOptions>(
+        torch::optim::AdamWOptions(1e-5)
+      )
+    ),
+    torch::optim::OptimizerParamGroup(
+      dParams,
+      std::make_unique<torch::optim::AdamWOptions>(
+        torch::optim::AdamWOptions(1e-5).weight_decay(WEIGHT_DECAY)
+      )
+    )
+  };
+
+  torch::optim::AdamW optimizer(param_groups);
 
   float bestMetric = -std::numeric_limits<float>::infinity();
   float currentMetric;

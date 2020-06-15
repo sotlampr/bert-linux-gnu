@@ -8,6 +8,7 @@
 #define SNIFF_LINES 100
 #define CLASSIFICATION_IGNORE_INDEX -1
 #define MAX_GRADIENT_NORM 1.0f
+#define WEIGHT_DECAY 1e-2f
 
 struct Config {
     int hiddenSize;;
