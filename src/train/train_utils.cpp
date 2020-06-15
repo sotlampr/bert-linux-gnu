@@ -86,13 +86,13 @@ void saveModel(BertModel &model,
   }
 }
 
-
 void runTraining(const std::string& modelDir,
                  const std::string& dataDir,
                  std::vector<Task>& tasks,
                  int batchSize,
-                 int numWorkers,
                  int numEpochs,
+                 float lr,
+                 int numWorkers,
                  const std::string& saveFname,
                  int randomSeed) {
   torch::manual_seed(randomSeed);
@@ -160,13 +160,13 @@ void runTraining(const std::string& modelDir,
     torch::optim::OptimizerParamGroup(
       ndParams,
       std::make_unique<torch::optim::AdamWOptions>(
-        torch::optim::AdamWOptions(1e-5)
+        torch::optim::AdamWOptions(lr)
       )
     ),
     torch::optim::OptimizerParamGroup(
       dParams,
       std::make_unique<torch::optim::AdamWOptions>(
-        torch::optim::AdamWOptions(1e-5).weight_decay(WEIGHT_DECAY)
+        torch::optim::AdamWOptions(lr).weight_decay(WEIGHT_DECAY)
       )
     )
   };

@@ -7,13 +7,6 @@
 #include "task.h"
 #include "train_utils.h"
 
-#define CHECK_INT_ARG(name, value) \
-if (value == -1) { \
-  printHelp(argv[0]); \
-  std::cout << "Error: `" << name "` required" << std::endl; \
-  return 1; \
-}
-
 #define CHECK_VECTOR_ARG(name, var) \
 if (var.size() == 0) { \
   printHelp(argv[0]); \
@@ -53,7 +46,8 @@ Task selection:\n\
                               Default: 0.1\n\n\
 Training parameters:\n\
   -b, --batch-size\n\
-  -e, --num-epochs\n\n\
+  -e, --num-epochs\n\
+  -a, --lr\n\n\
 Training options:\n\
   -n, --num-workers         Number of workers for the data loader.\n\
                               Default: 0 (single-threaded)\n\
@@ -62,16 +56,20 @@ Training options:\n\
 
 int main(int argc, char *argv[]) {
   int c, opt = 0;
-  int batchSize, numEpochs; batchSize = numEpochs = -1;
-  int numWorkers = 0, seed = 42;
+  int batchSize = DEFAULT_BATCH_SIZE,
+      numEpochs = DEFAULT_NUM_EPOCHS,
+      numWorkers = 0, seed = 42;
+  float lr = DEFAULT_LR;
+
   std::string modelDir, dataDir, saveModel; modelDir = dataDir = saveModel = "";
   std::vector<Task> tasks;
   Task lastTask;
 
 	static struct option options[] = {
 			{"batch-size",            required_argument, NULL,  'b' },
-			{"num-workers",           required_argument, NULL,  'w' },
 			{"num-epochs",            required_argument, NULL,  'e' },
+			{"lr",                    required_argument, NULL,  'a' },
+			{"num-workers",           required_argument, NULL,  'w' },
 			{"model-dir",             required_argument, NULL,  'M' },
 			{"save-model",            required_argument, NULL,  'S' },
 			{"data-dir",              required_argument, NULL,  'D' },
@@ -83,7 +81,7 @@ int main(int argc, char *argv[]) {
 			{NULL,                    0,                 NULL,   0  }
 	};
 
-	while ((c = getopt_long(argc, argv, "-:b:e:w:M:S:D:t:m:l:s:h", options, &opt)) != -1) {
+	while ((c = getopt_long(argc, argv, "-:b:e:a:w:M:S:D:t:m:l:s:h", options, &opt)) != -1) {
     switch (c) {
       case 1:
         printHelp(argv[0]);
@@ -94,6 +92,9 @@ int main(int argc, char *argv[]) {
         break;
       case 'e':
         numEpochs = std::stoi(optarg);
+        break;
+      case 'a':
+        lr = std::stof(optarg);
         break;
       case 'w':
         numWorkers = std::stoi(optarg);
@@ -163,8 +164,6 @@ int main(int argc, char *argv[]) {
   CHECK_STR_ARG("--model-dir", modelDir);
   CHECK_STR_ARG("--data-dir", dataDir);
   CHECK_VECTOR_ARG("--task", tasks);
-  CHECK_INT_ARG("--batch-size", batchSize);
-  CHECK_INT_ARG("--num-epochs", numEpochs);
 
   for (auto& task : tasks) {
     detectTaskType(task);
@@ -182,7 +181,8 @@ int main(int argc, char *argv[]) {
               << std::endl;
   }
 
-  runTraining(modelDir, dataDir, tasks, batchSize, numWorkers, numEpochs, saveModel, seed);
+  runTraining(modelDir, dataDir, tasks, batchSize, numEpochs, lr, numWorkers,
+              saveModel, seed);
 
  return 0;
 }

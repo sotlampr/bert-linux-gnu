@@ -204,12 +204,13 @@ Whoa, that was nice!!
 - BERT model
 - Binary \& Multi-class sentence-level classification
 - Multi-sentence tasks (via manual preprocessing)
+- Token-level calssification
+- `AdamW` optimizer
+- Gradient clipping
 
 # Will implement
 
 - SentencePiece tokenizer (for models trained with SP-tokenized texts)
-- ~~Token-level classification~~
-- ~~Save model~~
 - Test model
 - Multi-class metrics
 

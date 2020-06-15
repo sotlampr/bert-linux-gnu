@@ -9,6 +9,10 @@
 #define CLASSIFICATION_IGNORE_INDEX -1
 #define MAX_GRADIENT_NORM 1.0f
 #define WEIGHT_DECAY 1e-2f
+#define DEFAULT_BATCH_SIZE 32
+#define DEFAULT_NUM_EPOCHS 4
+#define DEFAULT_LR 1e-5f
+
 
 struct Config {
     int hiddenSize;;
