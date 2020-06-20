@@ -43,9 +43,14 @@ std::vector<torch::Tensor> TextDataset::getClassWeights(const std::vector<Task>&
     } else {
       // Multiclass task.
       // Weight is given by num_samples / (num_classes * num_classX)
+      // Binary task - weight is given by num_negative/num_positive
       torch::Tensor numClasses = (labels[i].max() + 1).to(torch::kFloat);
       torch::Tensor weights = torch::zeros(numClasses.item<long>()).to(torch::kFloat);;
-      long numSamples = labels[i].size(0) * labels[i].size(1);
+      long numSamples = labels[i].size(0);
+
+      // Token-level case
+      if (labels[i].ndimension() > 1) numSamples *= labels[i].size(1);
+
       // Do not count ignored values in total number of sampes
       numSamples -= (labels[i] == CLASSIFICATION_IGNORE_INDEX).sum().item<long>();
 
