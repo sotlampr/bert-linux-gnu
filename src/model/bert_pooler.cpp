@@ -7,11 +7,13 @@ BertPoolerImpl::BertPoolerImpl(Config const &config, bool useCLS)
   register_module("dense", dense);
 }
 torch::Tensor BertPoolerImpl::forward(torch::Tensor hiddenStates) {
-  // std::cout << "BertPooler" << std::endl;
-  // std::cout << "Pooler hiddenStates: " << hiddenStates.sizes() << std::endl;
+  // hiddenStates shape: (BATCH_SIZE, MAX_SEQUENCE_LENGTH, HIDDEN_SIZE)
+  // Get the first column ([CLS] token) if useCLS
   if (useCLS) hiddenStates = hiddenStates.index({torch::indexing::Slice(), 0});
-  // std::cout << "	after indexing: " << hiddenStates.sizes() << std::endl;
+  // output shape: (BATCH_SIZE, HIDDEN_SIZE) if useCLS
+  //   else (BATCH_SIZE, MAX_SEQUENCE_LENGTH, HIDDEN_SIZE)
   torch::Tensor pooledOutput = dense->forward(hiddenStates);
   pooledOutput = torch::tanh(pooledOutput);
+
   return pooledOutput;
 }

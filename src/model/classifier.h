@@ -10,14 +10,14 @@
 
 struct BinaryClassifierOptions {
   Config config;
-  int numLabels;
-  bool tokenLevel;
+  int numLabels;  // Number of labels - for multi-label tasks
+  bool tokenLevel;  //  Token-level vs Sentence-level classification
 };
 
 struct MutliclassClassifierOptions {
   Config config;
-  int numClasses;
-  bool tokenLevel;
+  int numClasses;  // Number of classes
+  bool tokenLevel;  //  Token-level vs Sentence-level classification
 };
 
 class BinaryClassifierImpl : public torch::nn::Module {
@@ -43,4 +43,5 @@ class MulticlassClassifierImpl : public torch::nn::Module {
     torch::nn::Dropout dropout{nullptr};
     BertPooler pooler{nullptr};
 }; TORCH_MODULE(MulticlassClassifier);
+
 #endif

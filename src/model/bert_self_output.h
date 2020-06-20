@@ -19,4 +19,5 @@ class BertSelfOutputImpl : public torch::nn::Module {
     torch::nn::LayerNorm layerNorm{nullptr};
     torch::nn::Dropout dropout{nullptr};
 }; TORCH_MODULE(BertSelfOutput);
+
 #endif

@@ -5,6 +5,8 @@
 
 #include <unicode/ustream.h>
 
+// BasicTokenizer, as in the original BERT implementation.
+// Expects icu::UnicodeString(s)
 class BasicTokenizer {
   public:
     explicit BasicTokenizer(bool doLowerCase);

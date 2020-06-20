@@ -9,16 +9,22 @@ BertModelImpl::BertModelImpl(Config const &config)
 }
 
 torch::Tensor BertModelImpl::forward(torch::Tensor inputIds) {
-  // std::cout << "BertModel" << std::endl;
-  torch::Tensor zeros = torch::zeros_like(inputIds).to(torch::kCUDA);
-  torch::Tensor ones = torch::zeros_like(inputIds).to(torch::kCUDA);
-  torch::Tensor attentionMask = torch::where(inputIds != 0, ones, zeros).to(torch::kCUDA);
-  torch::Tensor extendedAttentionMask = attentionMask.unsqueeze(1).unsqueeze(2);
-  extendedAttentionMask = (1.0f - extendedAttentionMask) * -10000.0f;
+  // inputIds shape: (BATCH_SIZE, MAX_SEQUENCE_LENGTH) (non-embedded ids)
+
+  // The attention mask is going to be added to the raw scores before the
+  // softmax, so we will subtract 10,000 from the embedding for  inputs that
+  // are padded
+  torch::Tensor attentionMask = torch::where(
+    inputIds == PADDING_IDX,
+    torch::full_like(inputIds, -10000.0f), // To ignore
+    torch::full_like(inputIds, 0.0f) // To attend
+  ).cuda(); // shape: (BATCH_SIZE, MAX_SEQUENCE_LENGTH)
+
+  // Convert attentionMask to (BATCH_SIZE, 1, 1, MAX_SEQUENCE_LENGTH)
+  attentionMask  = attentionMask.unsqueeze(1).unsqueeze(2);
+
+  // shapes: (BATCH_SIZE, MAX_SEQUENCE_LENGTH, HIDDEN_SIZE) (embedded ids)
   torch::Tensor embeddingOutput = embeddings(inputIds);
-  // std::cout << "embeddingOutput: " << embeddingOutput.sizes() << std::endl;
-  torch::Tensor encoderOutputs = encoder(embeddingOutput, extendedAttentionMask);
-  // std::cout << "encoderOutputs: " << encoderOutputs.sizes() << std::endl;
-  // std::cout << "pooledOutput: " << pooledOutput.sizes() << std::endl;
+  torch::Tensor encoderOutputs = encoder(embeddingOutput, attentionMask);
   return encoderOutputs;
 }

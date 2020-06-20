@@ -7,6 +7,7 @@
 #include "bert_encoder.h"
 #include "config.h"
 
+// Does not include BertPooler
 class BertModelImpl : public torch::nn::Module {
   public:
     BertModelImpl();
@@ -16,4 +17,5 @@ class BertModelImpl : public torch::nn::Module {
     BertEmbeddings embeddings{nullptr};
     BertEncoder encoder{nullptr};
 }; TORCH_MODULE(BertModel);
+
 #endif

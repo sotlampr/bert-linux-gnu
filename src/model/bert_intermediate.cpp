@@ -7,11 +7,11 @@ BertIntermediateImpl::BertIntermediateImpl(Config const &config)
 }
 
 torch::Tensor BertIntermediateImpl::forward(torch::Tensor hiddenStates) {
-  // std::cout << "BertIntermediate" << std::endl;
-  // std::cout << "	BertIntermeddiate Input size: " << hiddenStates.sizes() << std::endl;
+  // hiddenStates before shape: (BATCH_SIZE, MAX_SEQUENCE_LENGTH, HIDDEN_SIZE)
   hiddenStates = dense->forward(hiddenStates);
+  // hiddenStates after shape:
+  //   (BATCH_SIZE, MAX_SEQUENCE_LENGTH, INTERMEDIATE_SIZE)
   hiddenStates = torch::gelu(hiddenStates);
-  // std::cout << "	BertIntermeddiate Output size: " << hiddenStates.sizes() << std::endl;
   return hiddenStates;
 }
 

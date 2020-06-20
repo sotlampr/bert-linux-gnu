@@ -16,23 +16,23 @@ BertEmbeddingsImpl::BertEmbeddingsImpl(Config const &config)
 }
 
 torch::Tensor BertEmbeddingsImpl::forward(torch::Tensor inputIds) {
-  // std::cout << "BertEmbeddings" << std::endl;
-  // std::cout << "tokenTypeIds" << std::endl;
-  torch::Tensor tokenTypeIds = torch::zeros_like(inputIds).to(torch::kCUDA);
-  // std::cout << "positionIds init" << std::endl;
-  torch::Tensor positionIds = torch::arange(MAX_SEQUENCE_LENGTH,
-                                            torch::TensorOptions().dtype(torch::kInt64)).to(torch::kCUDA);
-  // std::cout << "positionIds unsqueezing" << std::endl;
-  // std::cout << "Position IDS: " << positionIds.sizes() << std::endl;
-  // std::cout << "Inpuy IDS: " << inputIds.sizes() << std::endl;
-  positionIds = positionIds.unsqueeze(0).expand_as(inputIds);
+  // inputIds shape: (BATCH_SIZE, MAX_SEQUENCE_LENGTH)
+  // TODO: detect presence of [SEP] and modify tokenTypeIds appropriately
+  torch::Tensor tokenTypeIds = torch::zeros_like(inputIds).cuda();
 
+  torch::Tensor positionIds = torch::arange(
+    MAX_SEQUENCE_LENGTH,
+    torch::TensorOptions().dtype(torch::kInt64)
+  ).cuda().unsqueeze(0).expand_as(inputIds);
 
   torch::Tensor wordEmbed = wordEmbeddings->forward(inputIds);
   torch::Tensor posEmbed = positionEmbeddings->forward(positionIds);
   torch::Tensor tokEmbed = tokenTypeEmbeddings->forward(tokenTypeIds);
+  // output / *Embed shape: (BATCH_SIZE, MAX_SEQUENCE_LENGTH, HIDDEN_SIZE)
   torch::Tensor output = wordEmbed + posEmbed + tokEmbed;
+
   output = layerNorm->forward(output);
   output = dropout->forward(output);
+
   return output;
 }

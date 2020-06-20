@@ -13,6 +13,7 @@ class BertPoolerImpl : public torch::nn::Module {
     torch::Tensor forward(torch::Tensor hiddenStates);
   private:
     torch::nn::Linear dense{nullptr};
-    bool useCLS;
+    bool useCLS; // Whether to use the first [CLS] token for sentence-level tasks
 }; TORCH_MODULE(BertPooler);
+
 #endif

@@ -26,30 +26,38 @@ torch::Tensor BertSelfAttentionImpl::transposeForScores(torch::Tensor x) {
 
 torch::Tensor BertSelfAttentionImpl::forward(torch::Tensor hiddenStates,
                                              torch::Tensor attentionMask) {
-  // std::cout << "BertSelfAttention" << std::endl;
-  // std::cout << "Transposing queryLayer" << std::endl;
+  // hiddenStates shape: (BATCH_SIZE, MAX_SEQUENCE_LENGTH, HIDDEN_SIZE)
+
+  // q,k,v layers shape:
+  //   (BATCH_SIZE, NUM_LAYERS, MAX_SEQUENCE_LENGTH, NUM_ATTENTION_HEADS)
   torch::Tensor queryLayer = transposeForScores(query->forward(hiddenStates));
-  // std::cout << "Transposing keyLayer" << std::endl;
   torch::Tensor keyLayer = transposeForScores(key->forward(hiddenStates));
-  // std::cout << "Transposing valueLayer" << std::endl;
   torch::Tensor valueLayer = transposeForScores(value->forward(hiddenStates));
 
-  // std::cout << "Matmul query*key" << std::endl;
+  // Take the dot product between "query" and "key" to get the raw attention
+  // scores for each layer
+  // shape: (BATCH_SIZE, NUM_LAYERS, MAX_SEQUENCE_LENGTH, MAX_SEQUENCE_LENGTH)
   torch::Tensor attentionScores = torch::matmul(queryLayer, keyLayer.transpose(-1, -2));
-  // std::cout << "Divide by sqrt attentionHeadSize" << std::endl;
   attentionScores /= std::sqrt(attentionHeadSize);
-  // std::cout << "Adding mask" << std::endl;
-  // std::cout << attentionScores.sizes() << " " << attentionMask.sizes() << std::endl;
+
   attentionScores += attentionMask;
-  // std::cout << "Applying softmax" << std::endl;
+
+  // Convert to probabilities
   torch::Tensor attentionProbs = attentionScores.softmax(-1);
   attentionProbs = dropout->forward(attentionProbs);
 
-  // std::cout << "matmul attention w/ values" << std::endl;
+  // Batch matrix multiplication for each sample and layer
+  //   (MAX_SEQUENCE_LENGTH, MAX_SEQUENCE_LENGTH) ( attentionProbs)
+  //    @ (MAX_SEQUENCE_LENGTH, //   NUM_ATTENTION_HEADS) (valueLayer)
+  //  contextLayer shape:
+  //   (BATCH_SIZE, NUM_LAYERS, MAX_SEQUENCE_LENGTH, NUM_ATTENTION_HEADS)
   torch::Tensor contextLayer = torch::matmul(attentionProbs, valueLayer);
-  // std::cout << "Permuting context layer" << std::endl;
+
+  // Move MAX_SEQUENCE_LENGTH dimension after BATCH_SIZE:
+  //   (BATCH_SIZE, MAX_SEQUENCE_LENGTH, NUM_LAYERS, NUM_ATTENTION_HEADS)
   contextLayer = contextLayer.permute({0, 2, 1, 3});
-  // std::cout << "Viewing context layer" << std::endl;
+
+  // View as (BATCH_SIZE, MAX_SEQUENCE_LENGTH, HIDDEN_SIZE)
   contextLayer = contextLayer.reshape({contextLayer.size(0), contextLayer.size(1), hiddenSize});
   return contextLayer;
 }

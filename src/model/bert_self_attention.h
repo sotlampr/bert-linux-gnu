@@ -19,4 +19,5 @@ class BertSelfAttentionImpl : public torch::nn::Module {
     torch::nn::Dropout dropout{nullptr};
     int numAttentionHeads, hiddenSize, attentionHeadSize;
 }; TORCH_MODULE(BertSelfAttention);
+
 #endif

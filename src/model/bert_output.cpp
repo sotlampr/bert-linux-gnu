@@ -12,9 +12,10 @@ BertOutputImpl::BertOutputImpl(Config const &config)
 
 torch::Tensor BertOutputImpl::forward(torch::Tensor hiddenStates,
                                       torch::Tensor inputTensor) {
-  // std::cout << "BertOutput" << std::endl;
+  // hiddenStates shape: (BATCH_SIZE, MAX_SEQUENCE_LENGTH, HIDDEN_SIZE)
   hiddenStates = dense->forward(hiddenStates);
   hiddenStates = dropout->forward(hiddenStates);
   hiddenStates = layerNorm->forward(hiddenStates + inputTensor);
+
   return hiddenStates;
 }

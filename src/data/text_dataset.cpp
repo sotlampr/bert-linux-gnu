@@ -11,6 +11,7 @@ TextDataset::TextDataset(const std::string& modelDir,
     labels (readLabelsToTensor(tasks, subset)) {}
 
 MultiTaskExample TextDataset::get(size_t index) {
+  // Since we have multiple labels, they are collected in a vector
   std::vector<torch::Tensor> labelsOut;
   for (auto it = labels.begin(); it != labels.end(); it++) {
     labelsOut.push_back((*it)[index]);
@@ -33,37 +34,25 @@ std::vector<torch::IntArrayRef> TextDataset::getLabelSizes() const {
 std::vector<torch::Tensor> TextDataset::getClassWeights(const std::vector<Task>& tasks) const {
   std::vector<torch::Tensor> out;
   for (size_t i = 0; i < tasks.size(); i++) {
-    if ((TokenLevel & tasks[i].taskType) == TokenLevel) {
-			torch::Tensor numClasses = (labels[i].max() + 1).to(torch::kFloat);
-			torch::Tensor weights = torch::zeros(numClasses.item<long>()).to(torch::kFloat);;
-			long numSamples = labels[i].size(0) * labels[i].size(1) - (labels[i] == CLASSIFICATION_IGNORE_INDEX).sum().item<long>();
-			for (long j = 0; j < numClasses.item<long>(); j++) {
-				weights[j] = numSamples / (numClasses * (labels[i] == j).sum());
-			}
-			out.push_back(weights.cuda());
+    if ((Binary & tasks[i].taskType) == Binary) {
+      // Binary task - weight is given by num_negative/num_positive
+      // Values other than {0, 1} are ignored
+      torch::Tensor pos = (labels[i] == 1).sum().to(torch::kFloat);
+      torch::Tensor neg = (labels[i] == 0).sum().to(torch::kFloat);
+      out.push_back((neg/pos).cuda().unsqueeze(0));
     } else {
-      if ((Binary & tasks[i].taskType) == Binary) {
-        if (labels[i].ndimension() != 1) {
-          throw std::runtime_error("Multilabel classification not implemented");
-        } else {
-          torch::Tensor pos = (labels[i] == 1).sum().to(torch::kFloat);
-          torch::Tensor neg = (labels[i] == 0).sum().to(torch::kFloat);
-          out.push_back((neg/pos).cuda().unsqueeze(0));
-        }
-      } else {
-        if (labels[i].ndimension() != 1) {
-          throw std::runtime_error("Multilabel classification not implemented");
-        } else {
-          torch::Tensor numClasses = (labels[i].max() + 1).to(torch::kFloat);
-          torch::Tensor weights = torch::zeros(numClasses.item<long>()).to(torch::kFloat);;
-          long numSamples = labels[i].sizes()[0];
+      // Multiclass task.
+      // Weight is given by num_samples / (num_classes * num_classX)
+      torch::Tensor numClasses = (labels[i].max() + 1).to(torch::kFloat);
+      torch::Tensor weights = torch::zeros(numClasses.item<long>()).to(torch::kFloat);;
+      long numSamples = labels[i].size(0) * labels[i].size(1);
+      // Do not count ignored values in total number of sampes
+      numSamples -= (labels[i] == CLASSIFICATION_IGNORE_INDEX).sum().item<long>();
 
-          for (long j = 0; j < numClasses.item<long>(); j++) {
-            weights[j] = numSamples / (numClasses * (labels[i] == j).sum());
-          }
-          out.push_back(weights.cuda());
-        }
+      for (long j = 0; j < numClasses.item<long>(); j++) {
+        weights[j] = numSamples / (numClasses * (labels[i] == j).sum());
       }
+      out.push_back(weights.cuda());
     }
   }
   return out;

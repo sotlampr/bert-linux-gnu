@@ -7,4 +7,5 @@ long truePositives(torch::Tensor &labels, torch::Tensor &predictions);
 long falsePositives(torch::Tensor &labels, torch::Tensor &predictions);
 long trueNegatives(torch::Tensor &labels, torch::Tensor &predictions);
 long falseNegatives(torch::Tensor &labels, torch::Tensor &predictions);
+
 #endif

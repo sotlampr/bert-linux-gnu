@@ -13,11 +13,12 @@ BertSelfOutputImpl::BertSelfOutputImpl(Config const &config)
 
 torch::Tensor BertSelfOutputImpl::forward(torch::Tensor hiddenStates,
                                           torch::Tensor inputTensor) {
-  // std::cout << "BertSelfOutput" << std::endl;
-  // std::cout << "	BertSelfOutput Input size: " << hiddenStates.sizes() << std::endl;
+  // hiddenStates shape: (BATCH_SIZE, MAX_SEQUENCE_LENGTH, HIDDEN_SIZE)
   hiddenStates = dense->forward(hiddenStates);
   hiddenStates = dropout->forward(hiddenStates);
+
+  // Add input (residual)
   hiddenStates = layerNorm->forward(hiddenStates + inputTensor);
-  // std::cout << "	BertSelfOutput Output size: " << hiddenStates.sizes() << std::endl;
+
   return hiddenStates;
 }

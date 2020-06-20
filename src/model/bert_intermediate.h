@@ -14,4 +14,5 @@ class BertIntermediateImpl : public torch::nn::Module {
   private:
     torch::nn::Linear dense{nullptr};
 }; TORCH_MODULE(BertIntermediate);
+
 #endif

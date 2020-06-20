@@ -19,6 +19,7 @@ FullTokenizer::~FullTokenizer() {
 
 bool FullTokenizer::getDoLowercase(const std::string& modelDir) const {
   std::ifstream file(modelDir + "/lowercase");;
+  // If there exists file named `lowercase`, do lowercase
   if (file.is_open()) return true;
   return false;
 }
@@ -46,14 +47,19 @@ Vocabulary FullTokenizer::readVocabulary(const std::string &modelDir) {
 
 std::vector<icu::UnicodeString> FullTokenizer::tokenize(const std::string &s) {
   icu::UnicodeString us = unicoder.process(s, uErr);
-  std::vector<icu::UnicodeString> o;
-  std::vector<icu::UnicodeString> wordPieces;
+  std::vector<icu::UnicodeString> outputWordPieces;
+  std::vector<icu::UnicodeString> tokenWordPieces;
+  // Get each token from basicTokenizer (whitespace and punctuation tokenized),
+  // split that into word pieces (wordPieceTokenizer), and collect all word
+  // pieces together in `outputWordPieces`
   #ifdef DEBUG
   std::cout << "Tokenizing `" << s << std::endl;
   #endif
   for (icu::UnicodeString& token : basicTokenizer.tokenize(us)){
-    wordPieces = wordPieceTokenizer.tokenize(token);
-    o.insert(o.end(), wordPieces.begin(), wordPieces.end());
+    tokenWordPieces = wordPieceTokenizer.tokenize(token);
+    outputWordPieces.insert(
+      outputWordPieces.end(), tokenWordPieces.begin(), tokenWordPieces.end()
+    );
     #ifdef DEBUG
       std::cout << "\t`" << token << "` ->";
       for (const auto t : wordPieces) {
@@ -62,7 +68,7 @@ std::vector<icu::UnicodeString> FullTokenizer::tokenize(const std::string &s) {
       std::cout << std::endl;
     #endif
   }
-  return o;
+  return outputWordPieces;
 }
 
 std::vector<long> FullTokenizer::tokenizeToIds (const std::string &s) {

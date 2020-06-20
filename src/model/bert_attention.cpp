@@ -10,9 +10,12 @@ BertAttentionImpl::BertAttentionImpl(Config const &config)
 
 torch::Tensor BertAttentionImpl::forward(torch::Tensor inputTensor,
                                          torch::Tensor attentionMask) {
-  // std::cout << "BertAttention" << std::endl;
+  // inputTensor shape: (BATCH_SIZE, MAX_SEQUENCE_LENGTH, HIDDEN_SIZE)
+  // attentionMask shape: (BATCH_SIZE, 1, 1, MAX_SEQUENCE_LENGTH)
+  // selfOutputs shape: (BATCH_SIZE, MAX_SEQUENCE_LENGTH, HIDDEN_SIZE)
   torch::Tensor selfOutputs = self->forward(inputTensor, attentionMask);
+
+  // attentionOutput shape: (BATCH_SIZE, MAX_SEQUENCE_LENGTH, HIDDEN_SIZE)
   torch::Tensor attentionOutput = output->forward(selfOutputs, inputTensor);
-  // std::cout << "	BertAttention Output size: " << attentionOutput.sizes() << std::endl;
   return attentionOutput;
 }

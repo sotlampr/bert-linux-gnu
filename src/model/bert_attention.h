@@ -17,4 +17,5 @@ class BertAttentionImpl : public torch::nn::Module {
 		 BertSelfAttention self{nullptr};
 		 BertSelfOutput output{nullptr};
 }; TORCH_MODULE(BertAttention);
+
 #endif

@@ -13,7 +13,8 @@ BertEncoderImpl::BertEncoderImpl(Config const &config)
 
 torch::Tensor BertEncoderImpl::forward(torch::Tensor hiddenStates,
                                        torch::Tensor attentionMask) {
-  // std::cout << "BertEncoder" << std::endl;
+  // hiddenState shape: (BATCH_SIZE, MAX_SEQUENCE_LENGTH, HIDDEN_SIZE)
+  // attentionMask shape: (BATCH_SIZE, 1, 1, MAX_SEQUENCE_LENGTH)
   for (const auto &module : *layer) {
     hiddenStates = module->as<BertLayer>()->forward(hiddenStates, attentionMask);
   }

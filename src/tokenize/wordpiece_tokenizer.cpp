@@ -17,21 +17,25 @@ std::vector<icu::UnicodeString> WordPieceTokenizer::tokenize(const icu::UnicodeS
   int32_t start = 0;
   bool isBad = false;
 
+  // Greedy longest-match first using the given vocabulary
   while (start < s.length()) {
     int32_t end = s.length();
-    curSubString.remove();
+    curSubString.remove(); // Reset `curSubString`
     while (start < end) {
       s.extract(start, end-start, subString);
       if (start > 0) {
+        // Not word boundary, insert '##' before
         subString = subString.insert(0, "##");
       }
       if (vocab.find(subString) != vocab.end()) {
+        // Token is found in the vocabulary
         curSubString = subString;
         break;
       }
       end -= 1;
     }
     if (curSubString.length() == 0) {
+      // No match, to be tokenized as [UNK]
       isBad = true;
       break;
     }

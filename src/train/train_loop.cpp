@@ -19,19 +19,23 @@ void innerLoop(BertModel &model,
   for (auto& batch : *loader) {
       auto data = batch.data.cuda();
       auto batchLabels = batch.target;
+
+      // Move the labels to CUDA
 			std::for_each(batchLabels.begin(), batchLabels.end(), 
 				[](torch::Tensor &t) {
 					t = t.cuda();
 			});
 
       torch::Tensor output = model->forward(data);
-      torch::Tensor loss = torch::zeros(1, torch::requires_grad()).to(torch::kCUDA);
+
+      // Total loss placeholder
+      torch::Tensor loss = torch::zeros(1, torch::requires_grad()).cuda();
+
       torch::Tensor taskLogits, taskLoss, taskPredictions;
-      
       for (size_t i = 0; i < tasks.size(); i++) {
         taskLogits = tasks[i].classifier.forward(output);
         if (taskLogits.ndimension() == 3) {
-          // Token-level, flatten batch
+          // Token-level, flatten logits and targets
           taskLoss = tasks[i].criterion.forward(
             taskLogits.view({-1, taskLogits.size(2)}),
             batchLabels[i].view({-1})
@@ -41,8 +45,14 @@ void innerLoop(BertModel &model,
         }
         loss += taskLoss * tasks[i].lossMultiplier;
         losses[i].push_back(taskLoss.item<float>());
+        
+        // Insert the true labels for the batch to `labels`
         labels[i].index_put_({torch::indexing::Slice(startIdx, startIdx+batchLabels[i].size(0))}, batchLabels[i]);
+
+        // Convert the task logits to predicted classes
         taskPredictions = tasks[i].logitsToPredictions(taskLogits);
+
+        // Insert the predicted labels for the batch to `predictions`
         predictions[i].index_put_({torch::indexing::Slice(startIdx, startIdx+taskPredictions.size(0))}, taskPredictions);
 			}
 
@@ -65,9 +75,13 @@ void trainLoop(BertModel &model,
                std::vector<torch::Tensor> &predictions,
                torch::optim::Optimizer &optimizer) {
   model->train();
+
+  // Set all classifier heads to train mode
   for (auto& task : tasks) {
     task.classifier.ptr()->train();
   }
+  
+  // Training callback - perform an optimization step
   auto callback = [&] (torch::Tensor loss) {
       model->zero_grad();
       for (auto& task : tasks) {
@@ -82,6 +96,8 @@ void trainLoop(BertModel &model,
       }
       optimizer.step();
   };
+
+  // Train for an epoch
   innerLoop(model, tasks, loader, losses, labels, predictions, callback);
 }
 
@@ -94,9 +110,12 @@ void trainLoop(BertModel &model,
                std::vector<torch::Tensor> &predictions) {
   torch::NoGradGuard no_grad;
   model->eval();
+  // Set all classifier heads to eval mode
   for (auto& task : tasks) {
     task.classifier.ptr()->eval();
   }
-  auto callback = [] (torch::Tensor loss) {};
+  auto callback = [] (torch::Tensor loss) {}; // Dummy callback, does nothing
+
+  // Forward for an epoch
   innerLoop(model, tasks, loader, losses, labels, predictions, callback);
 }

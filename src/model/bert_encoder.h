@@ -16,4 +16,5 @@ class BertEncoderImpl : public torch::nn::Module {
 		torch::nn::ModuleList layer{nullptr};
     size_t numLayers;
 }; TORCH_MODULE(BertEncoder);
+
 #endif

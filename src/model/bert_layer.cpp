@@ -12,10 +12,16 @@ BertLayerImpl::BertLayerImpl(Config const &config)
 
 torch::Tensor BertLayerImpl::forward(torch::Tensor hiddenStates,
                                      torch::Tensor attentionMask) {
-  // std::cout << "BertLayer" << std::endl;
+  // inputIds shape: (BATCH_SIZE, MAX_SEQUENCE_LENGTH) (non-embedded ids)
+  // attentionMask shape: (BATCH_SIZE, 1, 1, MAX_SEQUENCE_LENGTH)
+  // attentionOutputs shape: (BATCH_SIZE, MAX_SEQUENCE_LENGTH, HIDDEN_SIZE)
   torch::Tensor attentionOutputs = attention->forward(hiddenStates, attentionMask);
+
+  // intermediateOutput shape:
+  //   (BATCH_SIZE, MAX_SEQUENCE_LENGTH, INTERMEDIATE_SIZE)
   torch::Tensor intermediateOutput = intermediate->forward(attentionOutputs);
+
+  // layerOutput shape: (BATCH_SIZE, MAX_SEQUENCE_LENGTH, HIDDEN_SIZE)
   torch::Tensor layerOutput = output->forward(intermediateOutput, attentionOutputs);
-  // std::cout << "	BertLayer Output size: " << layerOutput.sizes() << std::endl;
   return layerOutput;
 }

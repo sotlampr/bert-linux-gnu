@@ -31,6 +31,7 @@ void Task::addMetric(std::string metric) {
   throw std::runtime_error("No metric `" + metric + "`");
 }
 
+// Template instatiations for the different loss options
 template Task::Task<BinaryClassifier, torch::nn::BCEWithLogitsLoss >
 (Task&, BinaryClassifier, torch::nn::BCEWithLogitsLoss, LogitsToPredictionsFunc&&);
 

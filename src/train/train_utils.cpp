@@ -28,9 +28,18 @@ std::vector<Task> initTasks(std::vector<Task>& tasks,
     if ((Regression & tasks[i].taskType) == Regression) {
       throw std::runtime_error("Regression not implemented");
     } else if ((Binary & tasks[i].taskType) == Binary) {
+      // Binary task
       torch::Tensor pos_weight = weights[i];
-      BinaryClassifierOptions options{config, static_cast<int>(pos_weight.size(0)), tokenLevel};
-      if (!saveFname.empty()) saveStruct(options, saveFname + "-" + tasks[i].name + "-binary.config");
+      BinaryClassifierOptions options{
+        config, static_cast<int>(pos_weight.size(0)), tokenLevel
+      };
+
+      // Save configuration if applicable
+      if (!saveFname.empty())
+        saveStruct(options, saveFname + "-" + tasks[i].name + "-binary.config");
+
+      // Convert task to second stage by adding classifier, criterion and
+      // logits to loss function
       out.push_back(
         Task(
           tasks[i], BinaryClassifier(options),
@@ -45,8 +54,16 @@ std::vector<Task> initTasks(std::vector<Task>& tasks,
       out.back().classifier.ptr()->to(torch::kCUDA);
     } else {
       torch::Tensor weight = weights[i];
-      MutliclassClassifierOptions options{config, static_cast<int>(weight.size(0)), tokenLevel};
-      if (!saveFname.empty()) saveStruct(options, saveFname + "-" + tasks[i].name + "-multiclass.config");
+      MutliclassClassifierOptions options{
+        config, static_cast<int>(weight.size(0)), tokenLevel
+      };
+
+      // Save configuration if applicable
+      if (!saveFname.empty())
+        saveStruct(options, saveFname + "-" + tasks[i].name + "-multiclass.config");
+
+      // Convert task to second stage by adding classifier, criterion and
+      // logits to loss function
       out.push_back(
         Task(
           tasks[i], MulticlassClassifier(options),
@@ -69,10 +86,12 @@ void saveModel(BertModel &model,
                const std::string& baseFname,
                float& currentMetric,
                float& bestMetric) {
+  // Save only if model has improved on the specified metric
   if (currentMetric > bestMetric) {
     std::cerr << "Model improved, saving..." << std::endl;
     bestMetric = currentMetric;
     torch::save(model, baseFname + "-bert.pt");
+    // Save each classifier head
     for (const auto& task : tasks) {
       std::string moduleName = task.classifier.ptr()->name();
       std::string moduleId;
@@ -81,7 +100,10 @@ void saveModel(BertModel &model,
       } else if (moduleName == "BinaryClassifierImpl") {
         moduleId = "binary";
       }
-      torch::save(task.classifier.ptr(), baseFname + "-" + task.name + "-" + moduleId + ".pt");
+      torch::save(
+        task.classifier.ptr(),
+        baseFname + "-" + task.name + "-" + moduleId + ".pt"
+      );
     }
   }
 }
@@ -131,8 +153,8 @@ void runTraining(const std::string& modelDir,
   tasks = initTasks(tasks, trainDataset, config, saveFname);
 
   // Initialize optimizer
-  std::vector<torch::Tensor> dParams;
-  std::vector<torch::Tensor> ndParams;
+  std::vector<torch::Tensor> dParams;  // Params to apply weight decay
+  std::vector<torch::Tensor> ndParams;  // Params to not apply weight decay
   for (const auto& param : model->named_parameters()) {
     const auto& name = param.key();
     if ((name.find("bias") != std::string::npos)
@@ -156,12 +178,14 @@ void runTraining(const std::string& modelDir,
   }
 
   std::vector<torch::optim::OptimizerParamGroup> param_groups {
+    // No decay params
     torch::optim::OptimizerParamGroup(
       ndParams,
       std::make_unique<torch::optim::AdamWOptions>(
         torch::optim::AdamWOptions(lr)
       )
     ),
+    // Decay params
     torch::optim::OptimizerParamGroup(
       dParams,
       std::make_unique<torch::optim::AdamWOptions>(
@@ -196,13 +220,13 @@ void runTraining(const std::string& modelDir,
     std::vector<std::vector<float>> trainLosses(tasks.size()), valLosses(tasks.size());
     std::vector<torch::Tensor> trainLabels, trainPredictions, valLabels, valPredictions;
 
+    // Initialize labels and predictions with zeros shaped as the originals
     for (auto it = trainLabelSizes.begin();
               it != trainLabelSizes.end();
               it++) {
       trainLabels.push_back(torch::zeros(*it));
       trainPredictions.push_back(torch::zeros(*it));
     }
-
     for (auto it = valLabelSizes.begin();
               it != valLabelSizes.end();
               it++) {
@@ -210,8 +234,10 @@ void runTraining(const std::string& modelDir,
       valPredictions.push_back(torch::zeros(*it));
     }
 
+    // Train epoch
     trainLoop(model, tasks, trainLoader, trainLosses, trainLabels, trainPredictions, optimizer);
   
+    // Print train stats separated by comma (csv-like)
     std::cout << epoch;
     for (size_t i = 0; i < tasks.size(); i++){
       float sum = 0.0f;
@@ -219,25 +245,23 @@ void runTraining(const std::string& modelDir,
       float avg = sum / trainLosses[i].size();
       std::cout << "," << avg;
       for (const auto& metric : tasks[i].metrics) {
-        // std::cout << std::endl << "task: " << tasks[i].name << ", metric: " << metric.first << std::endl;
         float val = metric.second(trainLabels[i], trainPredictions[i]);
         std::cout << "," << val;
-        // std::cout << std::endl;
       }
     }
 
+    // Val epoch
     trainLoop(model, tasks, valLoader, valLosses, valLabels, valPredictions);
 
+    // Print val stats separated by comma (csv-like)
     for (size_t i = 0; i < tasks.size(); i++){
       float sum = 0.0f;
       for (float x : valLosses[i] ) sum += x;
       float avg = sum / valLosses[i].size();
       std::cout << "," << avg;
       for (const auto& metric : tasks[i].metrics) {
-        // std::cout << std::endl << "task: " << tasks[i].name << ", metric: " << metric.first << std::endl;
         float val = metric.second(valLabels[i], valPredictions[i]);
         std::cout << "," << val;
-        // std::cout << std::endl;
       }
     }
     std::cout << std::endl;

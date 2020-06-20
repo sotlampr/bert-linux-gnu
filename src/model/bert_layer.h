@@ -19,4 +19,5 @@ class BertLayerImpl : public torch::nn::Module {
     BertIntermediate intermediate{nullptr};
     BertOutput output{nullptr};
 }; TORCH_MODULE(BertLayer);
+
 #endif
