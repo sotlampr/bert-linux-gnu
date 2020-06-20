@@ -177,6 +177,7 @@ int main(int argc, char *argv[]) {
     }
     std::cerr << " regression?=" << ((Regression & task.taskType) == Regression)
               << " token_level?=" << ((TokenLevel & task.taskType) == TokenLevel)
+              << " multi_label?=" << ((MultiLabel & task.taskType) == MultiLabel)
               << " binary?=" << ((Binary & task.taskType) == Binary)
               << std::endl;
   }

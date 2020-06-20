@@ -18,7 +18,7 @@ enum TaskType {
   Regression       = 1 << 0,
   Binary           = 1 << 1,
   TokenLevel       = 1 << 2,
-  NeedsTranslation = 1 << 3,
+  MultiLabel       = 1 << 3,
 };
 
 // Represents a task.

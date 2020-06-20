@@ -33,15 +33,31 @@ std::vector<torch::IntArrayRef> TextDataset::getLabelSizes() const {
 
 std::vector<torch::Tensor> TextDataset::getClassWeights(const std::vector<Task>& tasks) const {
   std::vector<torch::Tensor> out;
+  using namespace torch::indexing;
   for (size_t i = 0; i < tasks.size(); i++) {
     if ((Binary & tasks[i].taskType) == Binary) {
       // Binary task - weight is given by num_negative/num_positive
       // Values other than {0, 1} are ignored
-      torch::Tensor pos = (labels[i] == 1).sum().to(torch::kFloat);
-      torch::Tensor neg = (labels[i] == 0).sum().to(torch::kFloat);
-      out.push_back((neg/pos).cuda().unsqueeze(0));
+      if ((MultiLabel & tasks[i].taskType) == MultiLabel) {
+        torch::Tensor weights = torch::empty({labels[i].size(1)});
+        for (int j = 0; j < labels[i].size(1); j++ ) {
+          torch::Tensor pos =
+              (labels[i].index({Ellipsis, j}) == 1).sum().to(torch::kFloat);
+          torch::Tensor neg =
+              (labels[i].index({Ellipsis, j}) == 0).sum().to(torch::kFloat);
+          weights[j] = neg/pos;
+        }
+        out.push_back(weights.cuda());
+      } else {
+        torch::Tensor pos = (labels[i] == 1).sum().to(torch::kFloat);
+        torch::Tensor neg = (labels[i] == 0).sum().to(torch::kFloat);
+        out.push_back((neg/pos).cuda().unsqueeze(0));
+      }
     } else {
       // Multiclass task.
+      if ((MultiLabel & tasks[i].taskType) == MultiLabel) {
+        throw std::runtime_error("Multi-label multi-class tasks not supported");
+      }
       // Weight is given by num_samples / (num_classes * num_classX)
       // Binary task - weight is given by num_negative/num_positive
       torch::Tensor numClasses = (labels[i].max() + 1).to(torch::kFloat);

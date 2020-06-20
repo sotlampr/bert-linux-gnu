@@ -21,9 +21,9 @@ template <typename T>
 std::vector<T> readLabels(std::string fname);
 
 // Read labels from a filename to a vector of vectors of C++ types
-// Token-level: multiple labels per line
+// 2D: multiple labels per line
 template <typename T>
-std::vector<std::vector<T>> readLabelsTokenLevel(std::string fname);
+std::vector<std::vector<T>> readLabels2D(std::string fname);
 
 // Convert string to numeric type (stol, stof)
 template <typename T> T stringToNumber(const std::string& s);
@@ -37,6 +37,12 @@ torch::Tensor idsToTensor(const std::vector<T>& ids);
 template <typename T>
 torch::Tensor idsToTensor(const std::vector<std::vector<T>>& ids,
                           T& sosId, T& eosId, T& paddingIdx);
+
+// Convert a vector of C++ types to a torch tensor
+// For multi-label tasks
+template <typename T>
+torch::Tensor idsToTensor(const std::vector<std::vector<T>>& ids);
+
 
 // Detect the task type by sniffing the first lines of a file
 void detectTaskType(Task& task);
