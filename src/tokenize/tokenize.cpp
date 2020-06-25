@@ -15,8 +15,10 @@ int main(int argc, char *argv[]) {
 	}
 
   std::string modelDir = argv[1];
+  std::string vocabFname = modelDir + "/vocab.txt";
+  std::string lowercaseFname = modelDir + "/lowercase";
 
-  FullTokenizer *tokenizer = new FullTokenizer(modelDir);
+  FullTokenizer *tokenizer = new FullTokenizer(vocabFname, lowercaseFname);
   std::ifstream file(argv[2]);
   std::string line;
   while (std::getline(file, line)) {

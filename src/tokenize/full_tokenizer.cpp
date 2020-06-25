@@ -6,10 +6,11 @@
 #include <unicode/ustream.h>
 
 
-FullTokenizer::FullTokenizer(const std::string& modelDir)
+FullTokenizer::FullTokenizer(const std::string& vocabFname,
+                             const std::string& lowercaseFname)
     : unicoder (*(new UnicodeConverter(uErr))),
-      basicTokenizer (*(new BasicTokenizer(getDoLowercase(modelDir)))),
-      wordPieceTokenizer (*(new WordPieceTokenizer(readVocabulary(modelDir).first, "[UNK]", 200))) {};
+      basicTokenizer (*(new BasicTokenizer(getDoLowercase(lowercaseFname)))),
+      wordPieceTokenizer (*(new WordPieceTokenizer(readVocabulary(vocabFname).first, "[UNK]", 200))) {};
 
 FullTokenizer::~FullTokenizer() {
   delete &unicoder;
@@ -17,18 +18,17 @@ FullTokenizer::~FullTokenizer() {
   delete &wordPieceTokenizer;
 };
 
-bool FullTokenizer::getDoLowercase(const std::string& modelDir) const {
-  std::ifstream file(modelDir + "/lowercase");;
+bool FullTokenizer::getDoLowercase(const std::string& lowercaseFname) const {
+  std::ifstream file(lowercaseFname);
   // If there exists file named `lowercase`, do lowercase
   if (file.is_open()) return true;
   return false;
 }
 
-Vocabulary FullTokenizer::readVocabulary(const std::string &modelDir) {
-  std::string vocabFilename = modelDir + "/vocab.txt";
-  std::ifstream file(vocabFilename);
+Vocabulary FullTokenizer::readVocabulary(const std::string& vocabFname) {
+  std::ifstream file(vocabFname);
   if (!file.is_open()) {
-    throw std::runtime_error(vocabFilename + " not found");
+    throw std::runtime_error(vocabFname + " not found");
   }
   std::string line;
   icu::UnicodeString uLine;

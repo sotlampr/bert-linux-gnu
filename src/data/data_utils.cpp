@@ -96,19 +96,16 @@ torch::Tensor idsToTensor(const std::vector<std::vector<T>>& ids) {
 }
 
 
-
-
-torch::Tensor readTextsToTensor(const std::string& modelDir,
-                                const std::vector<Task>& tasks,
-                                const std::string& subset) {
+torch::Tensor readTextsToTensor(const std::string& textsFname,
+                                const std::string& lowercaseFname,
+                                const std::string& vocabFname) {
   // Initialize tokenizer
-  FullTokenizer *tokenizer = new FullTokenizer(modelDir);
+  FullTokenizer *tokenizer = new FullTokenizer(vocabFname, lowercaseFname);
 
   // Prepare file stream
-  std::string fname = tasks[0].baseDir + "/" + subset + "-texts";
-  std::ifstream file(fname);
+  std::ifstream file(textsFname);
   if (!file.is_open()) {
-    throw std::runtime_error(fname + " not found!");
+    throw std::runtime_error(textsFname + " not found!");
   }
 
   // Read file line-by-line and tokenize to ids
@@ -125,6 +122,60 @@ torch::Tensor readTextsToTensor(const std::string& modelDir,
   return idsToTensor(textsIds, sosId, eosId, paddingIdx);
 }
 
+torch::Tensor readTextsToTensor(const std::string& modelDir,
+                                const std::vector<Task>& tasks,
+                                const std::string& subset) {
+  std::string textsFname = tasks[0].baseDir + "/" + subset + "-texts";
+  std::string vocabFname = modelDir + "/vocab.txt";
+  std::string lowercaseFname = modelDir + "/lowercase";
+  return readTextsToTensor(textsFname, lowercaseFname, vocabFname);
+}
+
+torch::Tensor readLabelsToTensor(const std::string& labelsFname, int taskType) {
+  if (((Binary & taskType) == Binary)
+      || (Regression & taskType) == Regression) {
+    if ((TokenLevel & taskType) == TokenLevel) {
+      // Token-level, use readLabels2D and overloaded idsToTensor with
+      // sepcial token ids
+      float sosId = CLASSIFICATION_IGNORE_INDEX,
+            eosId = CLASSIFICATION_IGNORE_INDEX,
+            paddingIdx = CLASSIFICATION_IGNORE_INDEX;
+      std::vector<std::vector<float>> labels =
+          readLabels2D<float>(labelsFname);
+      return idsToTensor(labels, sosId, eosId, paddingIdx);
+    } else if ((MultiLabel & taskType) == MultiLabel) {
+      // Multi-label use readLabels2D and plain idsToTensor
+      std::vector<std::vector<float>> labels =
+          readLabels2D<float>(labelsFname);
+      return idsToTensor(labels);
+    } else {
+      // Sentence-level, use readLabels and plain idsToTensor
+      std::vector<float> labels = readLabels<float>(labelsFname);
+      return idsToTensor(labels);
+    }
+  } else {
+    // Multiclass
+    if ((TokenLevel & taskType) == TokenLevel) {
+      // Token-level, use readLabels2D and overloaded idsToTensor with
+      // sepcial token ids
+      long sosId = CLASSIFICATION_IGNORE_INDEX,
+           eosId = CLASSIFICATION_IGNORE_INDEX,
+           paddingIdx = CLASSIFICATION_IGNORE_INDEX;
+      std::vector<std::vector<long>> labels =
+          readLabels2D<long>(labelsFname);
+      return idsToTensor(labels, sosId, eosId, paddingIdx);
+    } else if ((MultiLabel & taskType) == MultiLabel) {
+      // Multi-label use readLabels2D and plain idsToTensor
+      std::vector<std::vector<long>> labels =
+          readLabels2D<long>(labelsFname);
+      return idsToTensor(labels);
+    } else {
+      // Sentence-level, use readLabels and plain idsToTensor
+      std::vector<long> labels = readLabels<long>(labelsFname);
+      return idsToTensor(labels);
+    }
+  }
+}
 
 std::vector<torch::Tensor> readLabelsToTensor(const std::vector<Task>& tasks,
                                               const std::string& subset) {
@@ -132,49 +183,8 @@ std::vector<torch::Tensor> readLabelsToTensor(const std::vector<Task>& tasks,
   std::vector<torch::Tensor> labelsVector;
 
   for (const auto& task : tasks) {
-    if (((Binary & task.taskType) == Binary)
-        || (Regression & task.taskType) == Regression) {
-      if ((TokenLevel & task.taskType) == TokenLevel) {
-        // Token-level, use readLabels2D and overloaded idsToTensor with
-        // sepcial token ids
-				float sosId = CLASSIFICATION_IGNORE_INDEX,
-					    eosId = CLASSIFICATION_IGNORE_INDEX,
-					    paddingIdx = CLASSIFICATION_IGNORE_INDEX;
-				std::vector<std::vector<float>> labels =
-					 	readLabels2D<float>(baseFname + task.name);
-				labelsVector.push_back(idsToTensor(labels, sosId, eosId, paddingIdx));
-      } else if ((MultiLabel & task.taskType) == MultiLabel) {
-        // Multi-label use readLabels2D and plain idsToTensor
-				std::vector<std::vector<float>> labels =
-					 	readLabels2D<float>(baseFname + task.name);
-				labelsVector.push_back(idsToTensor(labels));
-      } else {
-        // Sentence-level, use readLabels and plain idsToTensor
-				std::vector<float> labels = readLabels<float>(baseFname + task.name);
-				labelsVector.push_back(idsToTensor(labels));
-      }
-    } else {
-      // Multiclass
-      if ((TokenLevel & task.taskType) == TokenLevel) {
-        // Token-level, use readLabels2D and overloaded idsToTensor with
-        // sepcial token ids
-				long sosId = CLASSIFICATION_IGNORE_INDEX,
-					   eosId = CLASSIFICATION_IGNORE_INDEX,
-					   paddingIdx = CLASSIFICATION_IGNORE_INDEX;
-				std::vector<std::vector<long>> labels =
-					 	readLabels2D<long>(baseFname + task.name);
-				labelsVector.push_back(idsToTensor(labels, sosId, eosId, paddingIdx));
-      } else if ((MultiLabel & task.taskType) == MultiLabel) {
-        // Multi-label use readLabels2D and plain idsToTensor
-				std::vector<std::vector<long>> labels =
-					 	readLabels2D<long>(baseFname + task.name);
-				labelsVector.push_back(idsToTensor(labels));
-      } else {
-        // Sentence-level, use readLabels and plain idsToTensor
-				std::vector<long> labels = readLabels<long>(baseFname + task.name);
-				labelsVector.push_back(idsToTensor(labels));
-      }
-    }
+    std::string labelsFname = baseFname + task.name;
+    labelsVector.push_back(readLabelsToTensor(labelsFname, task.taskType));
   }
   return labelsVector;
 }
@@ -217,13 +227,13 @@ std::vector<std::vector<T>> readLabels2D(std::string fname) {
   return data;
 }
 
-
-void detectTaskType(Task &task) {
-  std::string fname = task.baseDir + "/" + "train-" + task.name;
-  std::ifstream file(fname);
+int detectTaskType(std::string labelsFname) {
+  std::ifstream file(labelsFname);
   if (!file.is_open()) {
-    throw std::runtime_error(fname + " not found!");
+    throw std::runtime_error(labelsFname + " not found!");
   }
+
+  int taskType = 0;
   std::string line;
 	std::vector<int> nTokens;
 	std::vector<std::vector<std::string>> data;
@@ -243,9 +253,9 @@ void detectTaskType(Task &task) {
 
   // Detect if lines have different numbers of tokens
 	if (std::adjacent_find(nTokens.begin(), nTokens.end(), std::not_equal_to<int>()) != nTokens.end()) {
-      task.taskType |= TokenLevel;
+      taskType |= TokenLevel;
   } else if (nTokens[0] != 1) {
-      task.taskType |= MultiLabel;
+      taskType |= MultiLabel;
   }
 	std::string s = data[0][0];
 	size_t p;
@@ -259,12 +269,12 @@ void detectTaskType(Task &task) {
   } else {
     (void)std::stof(s, &p);
     if(s.size() == p) {
-      task.taskType |= Regression;
+      taskType |= Regression;
     } 
   }
 
   // If not Regression, detect if bninary
-	if (!((Regression & task.taskType) == Regression)) {
+	if (!((Regression & taskType) == Regression)) {
     std::set<std::string> values;
     for (const auto& lineData : data) {
       for (const auto& token : lineData) {
@@ -272,7 +282,13 @@ void detectTaskType(Task &task) {
       }
     }
     if (values.size() == 2) {
-      task.taskType |= Binary;
+      taskType |= Binary;
     }
   }
+  return taskType;
+}
+
+void detectTaskType(Task &task) {
+  std::string labelsFname = task.baseDir + "/" + "train-" + task.name;
+  task.taskType = detectTaskType(labelsFname);
 }

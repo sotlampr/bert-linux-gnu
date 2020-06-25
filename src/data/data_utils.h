@@ -7,11 +7,16 @@
 #include "train/task.h"
 
 // Read a text file and return a padded tensor of embedding indices
+torch::Tensor readTextsToTensor(const std::string& textsFname,
+                                const std::string& lowercaseFname,
+                                const std::string& vocabFname);
+
 torch::Tensor readTextsToTensor(const std::string& modelDir,
                                 const std::vector<Task>& tasks,
                                 const std::string& subset);
 
 // Read labels for the given task into a vector of tensors of indices
+torch::Tensor readLabelsToTensor(const std::string& labelsFname, int taskType);
 std::vector<torch::Tensor> readLabelsToTensor(const std::vector<Task>& tasks,
                                               const std::string& subset);
 
@@ -45,5 +50,6 @@ torch::Tensor idsToTensor(const std::vector<std::vector<T>>& ids);
 
 
 // Detect the task type by sniffing the first lines of a file
+int detectTaskType(std::string labelsFname);
 void detectTaskType(Task& task);
 #endif

@@ -16,11 +16,12 @@ using Vocabulary = std::pair<std::map<icu::UnicodeString,long>,std::map<long,icu
 // Combines a BasicTokenizer and a FullTokenizer
 class FullTokenizer {
   public:
-    explicit FullTokenizer(const std::string &modelDir);
+    FullTokenizer(const std::string& vocabFname,
+                  const std::string& lowercaseFname);
 
     // Detects if the model is using lowercase texts from the presence of a
     // placeholder file in the model directory
-    bool getDoLowercase(const std::string& modelDir) const;
+    bool getDoLowercase(const std::string& lowercaseFname) const;
 
     // Tokenize a sentence to icu::UnicodeString word pieces
     std::vector<icu::UnicodeString> tokenize(const std::string &s);
@@ -33,7 +34,7 @@ class FullTokenizer {
 
     ~FullTokenizer();
   private:
-    Vocabulary readVocabulary(const std::string &modelDir);
+    Vocabulary readVocabulary(const std::string& vocabFname);
     std::map<UnicodeString, long> vocab;
     std::map<long, UnicodeString> invVocab;
     UErrorCode uErr = U_ZERO_ERROR;
