@@ -8,8 +8,8 @@
 
 // Read a text file and return a padded tensor of embedding indices
 torch::Tensor readTextsToTensor(const std::string& textsFname,
-                                const std::string& lowercaseFname,
-                                const std::string& vocabFname);
+                                const std::string& vocabFname,
+                                const std::string& lowercaseFname);
 
 torch::Tensor readTextsToTensor(const std::string& modelDir,
                                 const std::vector<Task>& tasks,

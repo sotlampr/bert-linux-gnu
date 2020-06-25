@@ -10,7 +10,7 @@
 class BasicTokenizer {
   public:
     explicit BasicTokenizer(bool doLowerCase);
-    std::vector<icu::UnicodeString> tokenize(icu::UnicodeString &s) const;
+    std::vector<std::string> tokenize(icu::UnicodeString &s) const;
   private:
     const bool doLowerCase;
     // Invalid character removal and whitespace cleanup
@@ -32,5 +32,9 @@ class BasicTokenizer {
     // Split at punctuation 
     std::vector<icu::UnicodeString>
       splitPunctuation(const icu::UnicodeString s) const;
+
+    // Convert an icu::UnicodeString vector to std::string vector
+    static std::vector<std::string> toStdString(
+      const std::vector<icu::UnicodeString>& ss);
 };
 #endif

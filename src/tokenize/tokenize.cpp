@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "full_tokenizer.h"
+#include "sentencepiece_tokenizer.h"
 
 namespace tokenize {
 
@@ -17,8 +18,17 @@ int main(int argc, char *argv[]) {
   std::string modelDir = argv[1];
   std::string vocabFname = modelDir + "/vocab.txt";
   std::string lowercaseFname = modelDir + "/lowercase";
+  Tokenizer *tokenizer;
+  std::ifstream v(vocabFname);
 
-  FullTokenizer *tokenizer = new FullTokenizer(vocabFname, lowercaseFname);
+  if (!v.is_open()) {
+    // Sentencepiece
+    vocabFname = modelDir + "/model.sp";
+    tokenizer = new SentencepieceTokenizer(vocabFname, lowercaseFname);
+  } else {
+    tokenizer = new FullTokenizer(vocabFname, lowercaseFname);
+  }
+
   std::ifstream file(argv[2]);
   std::string line;
   while (std::getline(file, line)) {

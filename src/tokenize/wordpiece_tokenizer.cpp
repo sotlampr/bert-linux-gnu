@@ -1,28 +1,28 @@
 #include "wordpiece_tokenizer.h"
 #include <unicode/schriter.h>
 
-WordPieceTokenizer::WordPieceTokenizer(const std::map<icu::UnicodeString,long> &vocab,
-                                       const icu::UnicodeString &unkToken,
-                                       int maxInputCharsPerWord)
+WordPieceTokenizer::WordPieceTokenizer(const std::map<std::string, long> &vocab,
+                                       const std::string &unkToken,
+                                       size_t maxInputCharsPerWord)
   : vocab (vocab), unkToken (unkToken), maxInputCharsPerWord(maxInputCharsPerWord) { }
 
-std::vector<icu::UnicodeString> WordPieceTokenizer::tokenize(const icu::UnicodeString &s) const {
-  std::vector<icu::UnicodeString> out;
+std::vector<std::string> WordPieceTokenizer::tokenize(const std::string &s) const {
+  std::vector<std::string> out;
   if (s.length() > maxInputCharsPerWord) {
     out.push_back(unkToken);
     return out;
   }
 
-  icu::UnicodeString subString, curSubString;
-  int32_t start = 0;
+  std::string subString, curSubString;
+  size_t start = 0;
   bool isBad = false;
 
   // Greedy longest-match first using the given vocabulary
   while (start < s.length()) {
-    int32_t end = s.length();
-    curSubString.remove(); // Reset `curSubString`
+    size_t end = s.length();
+    curSubString.clear(); // Reset `curSubString`
     while (start < end) {
-      s.extract(start, end-start, subString);
+      subString = s.substr(start, end-start);
       if (start > 0) {
         // Not word boundary, insert '##' before
         subString = subString.insert(0, "##");
@@ -49,7 +49,7 @@ std::vector<icu::UnicodeString> WordPieceTokenizer::tokenize(const icu::UnicodeS
   return out;
 }
 
-std::vector<long> WordPieceTokenizer::tokensToIds(const std::vector<icu::UnicodeString> &v) const {
+std::vector<long> WordPieceTokenizer::tokensToIds(const std::vector<std::string> &v) const {
   std::vector<long> ids;
   for (auto it = v.begin(); it != v.end(); it++) {
     ids.push_back(vocab.at(*it));
@@ -57,6 +57,6 @@ std::vector<long> WordPieceTokenizer::tokensToIds(const std::vector<icu::Unicode
   return ids;
 };
 
-long WordPieceTokenizer::tokenToId(const icu::UnicodeString &s) const {
+long WordPieceTokenizer::tokenToId(const std::string &s) const {
   return vocab.at(s);
 };

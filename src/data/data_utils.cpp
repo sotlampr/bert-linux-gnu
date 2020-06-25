@@ -97,10 +97,16 @@ torch::Tensor idsToTensor(const std::vector<std::vector<T>>& ids) {
 
 
 torch::Tensor readTextsToTensor(const std::string& textsFname,
-                                const std::string& lowercaseFname,
-                                const std::string& vocabFname) {
+                                const std::string& vocabFname,
+                                const std::string& lowercaseFname) {
   // Initialize tokenizer
-  FullTokenizer *tokenizer = new FullTokenizer(vocabFname, lowercaseFname);
+  std::string suffix = ".sp";
+  Tokenizer *tokenizer;
+  if (vocabFname.compare(vocabFname.size() - suffix.size(), suffix.size(), suffix) == 0) {
+    tokenizer = new SentencepieceTokenizer(vocabFname, lowercaseFname);
+  } else {
+    tokenizer = new FullTokenizer(vocabFname, lowercaseFname);
+  }
 
   // Prepare file stream
   std::ifstream file(textsFname);
@@ -127,8 +133,13 @@ torch::Tensor readTextsToTensor(const std::string& modelDir,
                                 const std::string& subset) {
   std::string textsFname = tasks[0].baseDir + "/" + subset + "-texts";
   std::string vocabFname = modelDir + "/vocab.txt";
+  std::ifstream file(vocabFname);
+  if (!file.is_open()) {
+    // Sentencepiece
+    vocabFname = modelDir + "/model.sp";
+  }
   std::string lowercaseFname = modelDir + "/lowercase";
-  return readTextsToTensor(textsFname, lowercaseFname, vocabFname);
+  return readTextsToTensor(textsFname, vocabFname, lowercaseFname);
 }
 
 torch::Tensor readLabelsToTensor(const std::string& labelsFname, int taskType) {

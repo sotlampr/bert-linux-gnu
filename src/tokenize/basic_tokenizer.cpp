@@ -6,7 +6,7 @@
 BasicTokenizer::BasicTokenizer(bool doLowerCase) : doLowerCase (doLowerCase) {};
 
 
-std::vector<icu::UnicodeString> BasicTokenizer::tokenize(icu::UnicodeString &s) const {
+std::vector<std::string> BasicTokenizer::tokenize(icu::UnicodeString &s) const {
   s = clean(s);
   s = tokenizeCJKChars(s);
   s = s.trim();
@@ -16,7 +16,7 @@ std::vector<icu::UnicodeString> BasicTokenizer::tokenize(icu::UnicodeString &s) 
 
   // Split each token in word pieces (`splitToken`) and then collect all the
   // word pieces together (`splitTokens`)
-  for (icu::UnicodeString& token:origTokens) {
+  for (icu::UnicodeString& token : origTokens) {
     if (token == "[SEP]") {
       // Don't split that
       splitTokens.push_back(token);
@@ -27,14 +27,19 @@ std::vector<icu::UnicodeString> BasicTokenizer::tokenize(icu::UnicodeString &s) 
     splitToken = splitPunctuation(token);
     splitTokens.insert(splitTokens.end(), splitToken.begin(), splitToken.end());
   }
-  s.remove();
-  // Convert the vector of icu::UnicodeString(s) to whitespace-separated string
-  for (const  icu::UnicodeString& t : splitTokens) {
-    s += t;
-    s += " ";
-  }
-  return whitespaceTokenize(s);
+  return toStdString(splitTokens);
 };
+
+std::vector<std::string> BasicTokenizer::toStdString(const std::vector<icu::UnicodeString>& ss) {
+  std::vector<std::string> os;
+  std::string o;
+  for (const auto& s : ss) {
+    s.toUTF8String(o);
+    os.push_back(o);
+    o.clear();
+  }
+  return os;
+}
 
 icu::UnicodeString BasicTokenizer::clean(const icu::UnicodeString &i) const {
   icu::UnicodeString o;
