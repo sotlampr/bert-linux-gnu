@@ -1,17 +1,16 @@
 SHELL := /bin/bash
-PREFIX := $(shell python -c "import sys; print(sys.exec_prefix)")
-INCLUDE := $(shell python -c "import torch.utils.cpp_extension as C; print('-I' + str.join(' -I', C.include_paths()))")
-TORCHLIBS := $(shell python -c "import torch.utils.cpp_extension as C; print(C.include_paths()[0] + '/../lib')")
-LDFLAGS := -ltorch -lc10 -lc10_cuda -ltorch_cpu -lcuda -lpthread -licuuc -licuio
+LIBTORCH_DIR := ${HOME}/libtorch
+LIBRARIES := -L$(LIBTORCH_DIR)/lib
+LDFLAGS := -ltorch -lc10 -lc10_cuda -ltorch_cpu -lcuda -lpthread -licuuc -licuio -lsentencepiece
 CXXFLAGS := -march=native -O0 -pipe -std=c++14 -ggdb3 -g
-CPPFLAGS := -D_GLIBCXX_USE_CXX11_ABI=0 # -DDEBUG
+CPPFLAGS := # -DDEBUG
 
-MODULES := data metrics model optim state tokenize train test
+MODULES := data metrics model optim state tokenize train predict
 SRC_DIR := $(addprefix src/,$(MODULES))
 BUILD_DIR := $(addprefix build/,$(MODULES))
 SOURCES := $(foreach sdir,$(SRC_DIR),$(wildcard $(sdir)/*.cpp))
 OBJECTS := $(patsubst src/%.cpp,build/%.o,$(SOURCES))
-INCLUDE += -I./src
+INCLUDE += -I$(LIBTORCH_DIR)/include -I$(LIBTORCH_DIR)/include/torch/csrc/api/include -I./src
 
 vpath %.cpp $(SRC_DIR)
 
@@ -25,7 +24,7 @@ endef
 all: checkdirs bert
 
 bert: src/bert.cpp $(OBJECTS)
-	$(CXX) -o $@ $^ $(LDFLAGS) -L$(TORCHLIBS) -Wl,-rpath,$(TORCHLIBS) 
+	$(CXX) -o $@ $^ $(INCLUDE) $(LDFLAGS) $(LIBRARIES) $(CXXFLAGS) $(CPPFLAGS)
 	
 checkdirs: $(BUILD_DIR)
 
