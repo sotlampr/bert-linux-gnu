@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 LIBTORCH_DIR := ${HOME}/libtorch
-LIBRARIES := -L$(LIBTORCH_DIR)/lib
+TORCHLIBS := $(LIBTORCH_DIR)/lib
 LDFLAGS := -ltorch -lc10 -lc10_cuda -ltorch_cpu -lcuda -lpthread -licuuc -licuio -lsentencepiece
 CXXFLAGS := -march=native -O0 -pipe -std=c++14 -ggdb3 -g
 CPPFLAGS := # -DDEBUG
@@ -24,7 +24,7 @@ endef
 all: checkdirs bert
 
 bert: src/bert.cpp $(OBJECTS)
-	$(CXX) -o $@ $^ $(INCLUDE) $(LDFLAGS) $(LIBRARIES) $(CXXFLAGS) $(CPPFLAGS)
+	$(CXX) -o $@ $^ -L$(TORCHLIBS) -Wl,--no-as-needed,-rpath,$(TORCHLIBS) $(LDFLAGS) $(CXXFLAGS) $(CPPFLAGS)
 	
 checkdirs: $(BUILD_DIR)
 
