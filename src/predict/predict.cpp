@@ -64,10 +64,12 @@ int main(int argc, char *argv[]) {
 
   std::string vocabFname = baseFname + ".vocab";
   std::string lowercaseFname = baseFname + ".lowercase";
-  torch::Tensor texts = readTextsToTensor(textsFname, lowercaseFname, vocabFname);
+  torch::Tensor texts = readTextsToTensor(textsFname, vocabFname, lowercaseFname);
+  bertModel->eval();
+  classifier.ptr()->eval();
 
   for (int i = 0; i < texts.size(0); i++) {
-    torch::Tensor hidden = bertModel->forward(texts.index({0}).unsqueeze(0).cuda());
+    torch::Tensor hidden = bertModel->forward(texts.index({i}).unsqueeze(0).cuda());
     torch::Tensor logits = classifier.forward(hidden).squeeze(0);
     std::cout << logits.item<float>() << std::endl;
   }
