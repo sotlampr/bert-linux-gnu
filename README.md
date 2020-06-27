@@ -26,9 +26,10 @@ and [libtorch](https://pytorch.org/cppdocs/) on a single GPU:
 
 # Prerequisites
 
+- [libtorch (w/ CXX ABI)](https://pytorch.org/get-started/locally/)
+- [sentencepiece](https://github.com/google/sentencepiece)
+- pytorch & pytorch-transformers
 - ICU
-- pytorch
-- pytorch-transformers
 - Recent gcc, stdlibc++ etc.
 
 # Examples
