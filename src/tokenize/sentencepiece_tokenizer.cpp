@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <string>
 
+#include <unicode/ustream.h>
+
 SentencepieceTokenizer::SentencepieceTokenizer(const std::string& modelFname,
                                                const std::string& lowercaseFname)
     : sentencepieceProcessor (*(new sentencepiece::SentencePieceProcessor())),
@@ -27,11 +29,11 @@ SentencepieceTokenizer::~SentencepieceTokenizer() {
 };
 
 std::string SentencepieceTokenizer::handleCase(std::string s) const {
-  if (doLowerCase) {
-    std::transform(s.begin(), s.end(), s.begin(),
-        [](unsigned char c){ return std::tolower(c); });
-  }
-  return s;
+  icu::UnicodeString us = icu::UnicodeString::fromUTF8(s.c_str());
+  us.toLower();
+  std::string os;
+  us.toUTF8String(os);
+  return os;
 }
 
 std::vector<std::string> SentencepieceTokenizer::tokenize(const std::string &s) {
