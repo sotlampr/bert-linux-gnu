@@ -63,6 +63,11 @@ int main(int argc, char *argv[]) {
   }
 
   std::string vocabFname = baseFname + ".vocab";
+  std::ifstream file(vocabFname);
+  if (!file.is_open()) {
+    // Sentencepiece
+    vocabFname = baseFname + ".sp";
+  }
   std::string lowercaseFname = baseFname + ".lowercase";
   torch::Tensor texts = readTextsToTensor(textsFname, vocabFname, lowercaseFname);
   bertModel->eval();
