@@ -27,11 +27,14 @@ and [libtorch](https://pytorch.org/cppdocs/) on a single GPU:
 # Prerequisites
 
 - ICU
-- pytorch
-- pytorch-transformers
+- libtorch
+- pytorch & pytorch-transformers
+- sentencepiece
 - Recent gcc, stdlibc++ etc.
 
 # Examples
+
+`export LD_LIBARY_PATH="/path/to/libtorch:$LD_LIBRARY_PATH"
 
 - Compile:
 
